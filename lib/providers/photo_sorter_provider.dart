@@ -26,7 +26,7 @@ class PhotoSorterProvider extends ChangeNotifier {
 
   bool get isFinished => _isFinished;
 
-  int get remaining => _allPhotos.length - _currentIndex;
+  int get remaining => _allPhotos.length - _toKeep.length - _toDelete.length;
 
   PermissionStatus get permissionStatus => _permissionStatus;
 
@@ -34,6 +34,8 @@ class PhotoSorterProvider extends ChangeNotifier {
   bool get hasPermission =>
       _permissionStatus == PermissionStatus.granted ||
       _permissionStatus == PermissionStatus.limited;
+
+  bool get canUndo => _currentIndex > 0;
 
   // La photo actuellement affichée
   AssetEntity? get currentPhoto =>
@@ -77,11 +79,15 @@ class PhotoSorterProvider extends ChangeNotifier {
   // Annuler la dernière action
   void undo() {
     if (_currentIndex <= 0) return;
+    if (_currentIndex > _allPhotos.length) return; // ← garde de sécurité
 
     _currentIndex--;
     _isFinished = false;
-    final lastPhoto = _allPhotos[_currentIndex];
 
+    // Vérifie que l'index est valide avant d'accéder à la liste
+    if (_currentIndex < 0 || _currentIndex >= _allPhotos.length) return;
+
+    final lastPhoto = _allPhotos[_currentIndex];
     // Retirer des listes de décision
     _toKeep.remove(lastPhoto);
     _toDelete.remove(lastPhoto);

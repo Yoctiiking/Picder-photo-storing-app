@@ -22,8 +22,7 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Charge les photos dès que l'écran s'ouvre
-    Future.microtask(() =>
-        context.read<PhotoSorterProvider>().loadPhotos());
+    Future.microtask(() => context.read<PhotoSorterProvider>().loadPhotos());
   }
 
   @override
@@ -49,13 +48,12 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
     if (!provider.isLoading && !provider.hasPermission) {
       return PermissionGateScreen(
         isPermanentlyDenied:
-        provider.permissionStatus == PermissionStatus.permanentlyDenied,
+            provider.permissionStatus == PermissionStatus.permanentlyDenied,
       );
     }
 
-
     // Écran de chargement
-    if (provider.isLoading || provider.allPhotos.isEmpty) {
+    if (provider.isLoading) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator()),
@@ -72,15 +70,83 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // isEmpty après
+    if (provider.allPhotos.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        // ← Bouton undo en haut à gauche
+        leading: IconButton(
+          icon: Icon(
+            Icons.undo_rounded,
+            color: provider.canUndo ? Colors.white : Colors.white24,
+          ),
+          onPressed: provider.canUndo
+              ? () {
+                  _swiperController
+                      .undo(); // onUndo callback appelera provider.undo()
+                }
+              : null,
+          tooltip: 'Annuler',
+        ),
         title: Text(
           '${provider.remaining} photos restantes',
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         centerTitle: true,
+        actions: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: provider.toDelete.isNotEmpty
+                      ? Colors.red
+                      : Colors.white24,
+                ),
+                onPressed: provider.toDelete.isNotEmpty
+                    ? () async {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => const SummaryScreen(),
+                          ),
+                        );
+                      }
+                    : null,
+                tooltip: 'Supprimer maintenant',
+              ),
+              // Badge avec le compteur
+              if (provider.toDelete.isNotEmpty)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${provider.toDelete.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -89,8 +155,10 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
             child: CardSwiper(
               controller: _swiperController,
               cardsCount: provider.allPhotos.length,
-              initialIndex: provider.currentIndex,
-              numberOfCardsDisplayed: provider.allPhotos.length.clamp(1, 3), // empilement de 1 à 3 cartes visibles
+              initialIndex: 0,
+              // ← toujours 0, le swiper gère sa propre position interne
+              numberOfCardsDisplayed: provider.allPhotos.length.clamp(1, 3),
+              // empilement de 1 à 3 cartes visibles
               backCardOffset: const Offset(0, 20),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               onSwipe: (previousIndex, currentIndex, direction) {
@@ -106,9 +174,14 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
                 provider.undo();
                 return true;
               },
-              cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-                return PhotoCard(photo: provider.allPhotos[index]);
-              },
+              cardBuilder:
+                  (context, index, percentThresholdX, percentThresholdY) {
+                    // ← garde de sécurité
+                    if (index < 0 || index >= provider.allPhotos.length) {
+                      return const SizedBox.shrink();
+                    }
+                    return PhotoCard(photo: provider.allPhotos[index]);
+                  },
             ),
           ),
 
@@ -123,23 +196,40 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
                   icon: Icons.close,
                   color: Colors.red,
                   label: 'Supprimer',
-                  onTap: () => _swiperController.swipe(CardSwiperDirection.left),
+                  onTap: () =>
+                      _swiperController.swipe(CardSwiperDirection.left),
                 ),
                 // Compteur
                 Column(
                   children: [
-                    Text('${provider.toKeep.length}',
-                        style: const TextStyle(color: Colors.green, fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const Text('gardées', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Text(
+                      '${provider.toDelete.length}',
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'à supprimer',
+                      style: TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
                   ],
                 ),
                 Column(
                   children: [
-                    Text('${provider.toDelete.length}',
-                        style: const TextStyle(color: Colors.red, fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const Text('à supprimer', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Text(
+                      '${provider.toKeep.length}',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'gardées',
+                      style: TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
                   ],
                 ),
                 // Bouton garder
@@ -147,7 +237,8 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
                   icon: Icons.favorite,
                   color: Colors.green,
                   label: 'Garder',
-                  onTap: () => _swiperController.swipe(CardSwiperDirection.right),
+                  onTap: () =>
+                      _swiperController.swipe(CardSwiperDirection.right),
                 ),
               ],
             ),

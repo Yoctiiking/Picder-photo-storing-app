@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:picder/screens/swipe_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/photo_sorter_provider.dart';
 
@@ -11,6 +12,19 @@ class SummaryScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        leading: provider.remaining > 0
+            ? IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white70),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const SwipeScreen()),
+            );
+          },
+        )
+            : null,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -35,18 +49,18 @@ class SummaryScreen extends StatelessWidget {
 
               // Stats
               _StatRow(
-                label: 'Photos à supprimer',
-                count: provider.toDelete.length,
-                color: Colors.red,
-              ),
-              const SizedBox(height: 48),
-
-              _StatRow(
                 label: 'Photos gardées',
                 count: provider.toKeep.length,
                 color: Colors.green,
               ),
               const SizedBox(height: 12),
+
+              _StatRow(
+                label: 'Photos supprimées',
+                count: provider.toDelete.length,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 48),
 
               // Bouton de confirmation (suppression réelle)
               if (provider.toDelete.isNotEmpty)
@@ -104,7 +118,7 @@ class SummaryScreen extends StatelessWidget {
                 ),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const SummaryScreen()),
+                    MaterialPageRoute(builder: (_) => const SwipeScreen()),
                   );
                   provider.reset();
                 },
