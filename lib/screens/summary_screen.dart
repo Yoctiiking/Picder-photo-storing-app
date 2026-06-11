@@ -18,6 +18,7 @@ class SummaryScreen extends StatelessWidget {
             ? IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white70),
                 onPressed: () {
+                  provider.reset(); // ← recharge depuis la galerie à jour
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const SwipeScreen()),
                   );
@@ -101,6 +102,7 @@ class SummaryScreen extends StatelessWidget {
                     if (confirmed == true && context.mounted) {
                       await provider.confirmDeletions();
                       if (context.mounted) {
+                        provider.reset(); // ← recharge proprement depuis la galerie
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(builder: (_) => const SwipeScreen()),
                         );
