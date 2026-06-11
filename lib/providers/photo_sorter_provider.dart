@@ -26,7 +26,7 @@ class PhotoSorterProvider extends ChangeNotifier {
 
   bool get isFinished => _isFinished;
 
-  int get remaining => _allPhotos.length - _toKeep.length - _toDelete.length;
+  int get remaining => _allPhotos.length - _currentIndex;
 
   PermissionStatus get permissionStatus => _permissionStatus;
 
@@ -56,7 +56,10 @@ class PhotoSorterProvider extends ChangeNotifier {
     }
 
     // 2. Permissions: OK - Charger les photos
-    _allPhotos = await _galleryService.loadPhotos();
+    // ← Exclut les photos déjà gardées des sessions précédentes
+    final excludeIds = _toKeep.map((p) => p.id).toList();
+    _allPhotos = await _galleryService.loadPhotos(excludeIds: excludeIds);
+    _currentIndex = 0;
     _isLoading = false;
     _isFinished = false;
     notifyListeners();
@@ -112,6 +115,17 @@ class PhotoSorterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Recharge en conservant les photos déjà gardées (après une suppression)
+  Future<void> reload() async {
+    _allPhotos = [];
+    _toDelete = [];
+    _currentIndex = 0;
+    _isFinished = false;
+    // ← _toKeep intentionnellement conservé
+    notifyListeners();
+    loadPhotos(); // loadPhotos() utilise _toKeep pour exclure
+  }
+
   // Recommencer du début
   void reset() {
     _allPhotos = [];
@@ -121,5 +135,29 @@ class PhotoSorterProvider extends ChangeNotifier {
     _isFinished = false;
     notifyListeners();
     loadPhotos();
+  }
+
+  // Une seule méthode pour revenir au swipe sans tout reset
+  void backToSwipe() {
+    // On ne touche à rien — on laisse tout l'état intact
+    notifyListeners();
+  }
+
+  // Appelé quand on revient sur SwipeScreen sans reload
+  void syncIndex() {
+    if (_currentIndex > 0 && _currentIndex <= _allPhotos.length) {
+      _allPhotos = _allPhotos.sublist(_currentIndex);
+      _currentIndex = 0;
+    }
+    notifyListeners();
+  }
+
+  void resetIndex() {
+    // Coupe _allPhotos pour ne garder que les photos non encore traitées
+    if (_currentIndex > 0 && _currentIndex <= _allPhotos.length) {
+      _allPhotos = _allPhotos.sublist(_currentIndex);
+    }
+    _currentIndex = 0;
+    notifyListeners();
   }
 }

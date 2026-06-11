@@ -22,7 +22,14 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Charge les photos dès que l'écran s'ouvre
-    Future.microtask(() => context.read<PhotoSorterProvider>().loadPhotos());
+    Future.microtask(() {
+      final provider = context.read<PhotoSorterProvider>();
+      if (provider.allPhotos.isEmpty) {
+        provider.loadPhotos();
+      } else {
+        provider.resetIndex();
+      }
+    });
   }
 
   @override
