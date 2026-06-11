@@ -23,7 +23,9 @@ class GalleryService {
   }
 
   // Demande la permission et charge toutes les photos
-  Future<List<AssetEntity>> loadPhotos() async {
+  Future<List<AssetEntity>> loadPhotos({
+    List<String> excludeIds = const [],
+  }) async {
     // 1. Demander la permission
     final PermissionState permission =
         await PhotoManager.requestPermissionExtend();
@@ -48,7 +50,6 @@ class GalleryService {
     // 3. Prendre le premier album (= "Tous les éléments" ou "Camera Roll")
     final AssetPathEntity allPhotos = albums.first;
     final int count = await allPhotos.assetCountAsync;
-
     if (count == 0) return [];
 
     // 4. Charger les assets (les métadonnées des photos)
@@ -58,7 +59,9 @@ class GalleryService {
       end: count,
     );
 
-    return photos;
+    // ← Filtre les photos déjà traitées
+    if (excludeIds.isEmpty) return photos;
+    return photos.where((p) => !excludeIds.contains(p.id)).toList();
   }
 
   // Supprime définitivement une liste de photos

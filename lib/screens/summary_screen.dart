@@ -14,11 +14,12 @@ class SummaryScreen extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        //Bouton retour en haut à gauche
         leading: provider.remaining > 0
             ? IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white70),
                 onPressed: () {
-                  provider.reset(); // ← recharge depuis la galerie à jour
+                  //provider.reset(); // ← recharge depuis la galerie à jour
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const SwipeScreen()),
                   );
@@ -78,35 +79,13 @@ class SummaryScreen extends StatelessWidget {
                     'Supprimer ${provider.toDelete.length} photos définitivement',
                   ),
                   onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Confirmer la suppression'),
-                        content: Text(
-                          'Tu vas supprimer ${provider.toDelete.length} photos. '
-                              'Cette action est irréversible.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Annuler'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Supprimer',
-                                style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true && context.mounted) {
-                      await provider.confirmDeletions();
-                      if (context.mounted) {
-                        provider.reset(); // ← recharge proprement depuis la galerie
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const SwipeScreen()),
-                        );
-                      }
+                    await provider.confirmDeletions();
+                    if (context.mounted) {
+                      provider
+                          .reload(); // ← recharge proprement depuis la galerie
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const SwipeScreen()),
+                      );
                     }
                   },
                 ),
@@ -121,10 +100,10 @@ class SummaryScreen extends StatelessWidget {
                   style: TextStyle(color: Colors.white54),
                 ),
                 onPressed: () {
+                  provider.reset();
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const SwipeScreen()),
                   );
-                  provider.reset();
                 },
               ),
             ],
