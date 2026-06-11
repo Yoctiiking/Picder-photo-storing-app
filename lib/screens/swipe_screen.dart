@@ -72,9 +72,34 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
 
     // isEmpty après
     if (provider.allPhotos.isEmpty) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.photo_library_outlined,
+                color: Colors.white24,
+                size: 80,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Galerie vide',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Toutes tes photos ont déjà été triées.',
+                style: TextStyle(color: Colors.white54, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
