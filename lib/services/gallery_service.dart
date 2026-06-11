@@ -49,6 +49,8 @@ class GalleryService {
     final AssetPathEntity allPhotos = albums.first;
     final int count = await allPhotos.assetCountAsync;
 
+    if (count == 0) return [];
+
     // 4. Charger les assets (les métadonnées des photos)
     // On charge par pages de 100 pour ne pas exploser la mémoire
     final List<AssetEntity> photos = await allPhotos.getAssetListRange(

@@ -58,7 +58,7 @@ class PhotoSorterProvider extends ChangeNotifier {
     // 2. Permissions: OK - Charger les photos
     _allPhotos = await _galleryService.loadPhotos();
     _isLoading = false;
-    _isFinished = _allPhotos.isEmpty;
+    _isFinished = false;
     notifyListeners();
   }
 

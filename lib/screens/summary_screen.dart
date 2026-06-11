@@ -16,13 +16,13 @@ class SummaryScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         leading: provider.remaining > 0
             ? IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white70),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const SwipeScreen()),
-            );
-          },
-        )
+                icon: const Icon(Icons.arrow_back, color: Colors.white70),
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const SwipeScreen()),
+                  );
+                },
+              )
             : null,
       ),
       body: SafeArea(
@@ -37,9 +37,9 @@ class SummaryScreen extends StatelessWidget {
                 size: 80,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Tri terminé !',
-                style: TextStyle(
+              Text(
+                provider.remaining > 0 ? 'Valider le tri ?' : 'Tri terminé !',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -77,14 +77,13 @@ class SummaryScreen extends StatelessWidget {
                     'Supprimer ${provider.toDelete.length} photos définitivement',
                   ),
                   onPressed: () async {
-                    // Dialogue de confirmation avant suppression définitive
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
                         title: const Text('Confirmer la suppression'),
                         content: Text(
                           'Tu vas supprimer ${provider.toDelete.length} photos. '
-                          'Cette action est irréversible.',
+                              'Cette action est irréversible.',
                         ),
                         actions: [
                           TextButton(
@@ -93,16 +92,19 @@ class SummaryScreen extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text(
-                              'Supprimer',
-                              style: TextStyle(color: Colors.red),
-                            ),
+                            child: const Text('Supprimer',
+                                style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
                     );
-                    if (confirmed == true) {
+                    if (confirmed == true && context.mounted) {
                       await provider.confirmDeletions();
+                      if (context.mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const SwipeScreen()),
+                        );
+                      }
                     }
                   },
                 ),
