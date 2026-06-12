@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:picder/screens/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'providers/photo_sorter_provider.dart';
-import 'screens/swipe_screen.dart';
 
 void main() {
   runApp(
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const SwipeScreen(),
+      home: const HomeScreen(),
     );
   }
 }

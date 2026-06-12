@@ -6,6 +6,7 @@ class PhotoSorterProvider extends ChangeNotifier {
   final GalleryService _galleryService = GalleryService();
 
   List<AssetEntity> _allPhotos = []; // Toutes les photos
+  AssetPathEntity? _currentAlbum;
   List<AssetEntity> _toKeep = []; // Décision : garder
   List<AssetEntity> _toDelete = []; // Décision : supprimer
   int _currentIndex = 0; // Photo actuellement affichée
@@ -15,6 +16,8 @@ class PhotoSorterProvider extends ChangeNotifier {
 
   // Getters (lecture seule depuis l'UI)
   List<AssetEntity> get allPhotos => _allPhotos;
+
+  AssetPathEntity? get currentAlbum => _currentAlbum;
 
   List<AssetEntity> get toKeep => _toKeep;
 
@@ -29,6 +32,24 @@ class PhotoSorterProvider extends ChangeNotifier {
   int get remaining => _allPhotos.length - _currentIndex;
 
   PermissionStatus get permissionStatus => _permissionStatus;
+
+  // Vérifie la permission sans charger de photos (pour HomeScreen)
+  Future<void> checkPermissionOnly() async {
+    _permissionStatus = await _galleryService.checkPermission();
+    notifyListeners();
+  }
+
+  // Choisit un album et charge ses photos
+  void setAlbum(AssetPathEntity album) {
+    _currentAlbum = album;
+    _allPhotos = [];
+    _toKeep = [];
+    _toDelete = [];
+    _currentIndex = 0;
+    _isFinished = false;
+    notifyListeners();
+    loadPhotos();
+  }
 
   // true si on peut utiliser l'app (granted OU limited avec au moins 1 photo)
   bool get hasPermission =>
@@ -55,10 +76,17 @@ class PhotoSorterProvider extends ChangeNotifier {
       return; // Stop ici — l'UI affichera le PermissionGate
     }
 
+    if (_currentAlbum == null) {
+      _allPhotos = [];
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
     // 2. Permissions: OK - Charger les photos
     // ← Exclut les photos déjà gardées des sessions précédentes
     final excludeIds = _toKeep.map((p) => p.id).toList();
-    _allPhotos = await _galleryService.loadPhotos(excludeIds: excludeIds);
+    _allPhotos = await _galleryService.loadPhotosFromAlbum(_currentAlbum!, excludeIds: excludeIds);
     _currentIndex = 0;
     _isLoading = false;
     _isFinished = false;

@@ -3,6 +3,15 @@ import 'package:photo_manager/photo_manager.dart';
 // Enum pour savoir exactement dans quel état on est
 enum PermissionStatus { granted, limited, denied, permanentlyDenied }
 
+// Représente un album avec sa miniature et son nombre de photos
+class AlbumInfo {
+  final AssetPathEntity path;
+  final int count;
+  final AssetEntity? cover;
+
+  AlbumInfo({required this.path, required this.count, this.cover});
+}
+
 class GalleryService {
   // Vérifie juste la permission, sans charger les photos
   Future<PermissionStatus> checkPermission() async {
@@ -60,6 +69,55 @@ class GalleryService {
     );
 
     // ← Filtre les photos déjà traitées
+    if (excludeIds.isEmpty) return photos;
+    return photos.where((p) => !excludeIds.contains(p.id)).toList();
+  }
+
+  // Récupère tous les albums avec leur miniature
+  Future<List<AlbumInfo>> getAlbums() async {
+    final PermissionState permission =
+    await PhotoManager.requestPermissionExtend();
+    if (!permission.isAuth) return [];
+
+    final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+      type: RequestType.image,
+      hasAll: true, // inclut l'album "Tous les éléments"
+    );
+
+    final List<AlbumInfo> result = [];
+    AlbumInfo? allPhotosAlbum;
+
+    for (final album in albums) {
+      final int count = await album.assetCountAsync;
+      if (count == 0) continue;
+
+      final covers = await album.getAssetListRange(start: 0, end: 1);
+      final info = AlbumInfo(
+        path: album,
+        count: count,
+        cover: covers.isNotEmpty ? covers.first : null,
+      );
+
+      if (album.isAll) {
+        allPhotosAlbum = info;
+      } else {
+        result.add(info);
+      }
+    }
+
+    if (result.isEmpty && allPhotosAlbum != null) return [allPhotosAlbum];
+    return result;
+  }
+
+  // Charge les photos d'un album précis
+  Future<List<AssetEntity>> loadPhotosFromAlbum(
+      AssetPathEntity album, {
+        List<String> excludeIds = const [],
+      }) async {
+    final int count = await album.assetCountAsync;
+    if (count == 0) return [];
+
+    final photos = await album.getAssetListRange(start: 0, end: count);
     if (excludeIds.isEmpty) return photos;
     return photos.where((p) => !excludeIds.contains(p.id)).toList();
   }
