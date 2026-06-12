@@ -23,6 +23,7 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // Charge les photos dès que l'écran s'ouvre
     Future.microtask(() {
+      // ignore: use_build_context_synchronously
       final provider = context.read<PhotoSorterProvider>();
       if (provider.allPhotos.isEmpty) {
         provider.loadPhotos();
@@ -114,19 +115,13 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        // ← Bouton undo en haut à gauche
+        // ← Retour au menu
         leading: IconButton(
-          icon: Icon(
-            Icons.undo_rounded,
-            color: provider.canUndo ? Colors.white : Colors.white24,
-          ),
-          onPressed: provider.canUndo
-              ? () {
-                  _swiperController
-                      .undo(); // onUndo callback appelera provider.undo()
-                }
-              : null,
-          tooltip: 'Annuler',
+          icon: const Icon(Icons.grid_view_outlined, color: Colors.white70),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          tooltip: 'Retour au menu',
         ),
         title: Text(
           '${provider.remaining} photos restantes',
@@ -134,6 +129,19 @@ class _SwipeScreenState extends State<SwipeScreen> with WidgetsBindingObserver {
         ),
         centerTitle: true,
         actions: [
+          // ← Undo
+          IconButton(
+            icon: Icon(
+              Icons.undo_rounded,
+              color: provider.canUndo ? Colors.white : Colors.white24,
+            ),
+            onPressed: provider.canUndo
+                ? () {
+                    _swiperController.undo();
+                  }
+                : null,
+            tooltip: 'Annuler',
+          ),
           Stack(
             alignment: Alignment.center,
             children: [
