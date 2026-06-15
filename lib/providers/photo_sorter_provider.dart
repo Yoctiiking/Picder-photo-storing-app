@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../services/gallery_service.dart';
+import '../services/stats_service.dart';
 
 class PhotoSorterProvider extends ChangeNotifier {
   final GalleryService _galleryService = GalleryService();
+  final StatsService _statsService = StatsService();
 
   List<AssetEntity> _allPhotos = []; // Toutes les photos
   AssetPathEntity? _currentAlbum;
@@ -137,8 +139,21 @@ class PhotoSorterProvider extends ChangeNotifier {
 
   // Confirme et exécute les suppressions
   Future<void> confirmDeletions() async {
-    if (_toDelete.isEmpty) return;
-    await _galleryService.deletePhotos(_toDelete);
+    if (_toDelete.isEmpty && _toKeep.isEmpty) return;
+
+    // ← Calcule la taille avant suppression
+    final bytesFreed = await _galleryService.calculateTotalSize(_toDelete);
+
+    if (_toDelete.isNotEmpty) {
+      await _galleryService.deletePhotos(_toDelete);
+    }
+
+    // ← Enregistre les statistiques de cette session
+    await _statsService.recordSession(
+      kept: _toKeep.length,
+      deleted: _toDelete.length,
+      bytesFreed: bytesFreed,
+    );
     _toDelete.clear();
     notifyListeners();
   }
