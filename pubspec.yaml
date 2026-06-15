@@ -31,6 +31,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  shared_preferences: ^2.3.3
+
   # Accès à la galerie photo (la lib la plus puissante pour ça)
   photo_manager: ^3.3.0
   photo_manager_image_provider: ^2.1.1

@@ -132,4 +132,16 @@ class GalleryService {
       return false;
     }
   }
+
+  // Calcule la taille totale en octets d'une liste de photos
+  Future<int> calculateTotalSize(List<AssetEntity> photos) async {
+    int total = 0;
+    for (final photo in photos) {
+      final file = await photo.file;
+      if (file != null && await file.exists()) {
+        total += await file.length();
+      }
+    }
+    return total;
+  }
 }
