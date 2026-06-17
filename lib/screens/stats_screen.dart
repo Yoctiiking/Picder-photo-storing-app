@@ -23,7 +23,6 @@ class _StatsScreenState extends State<StatsScreen> {
     setState(() => _stats = stats);
   }
 
-  // Formate les octets en Ko / Mo / Go lisibles
   String _formatBytes(int bytes) {
     if (bytes <= 0) return '0 Mo';
     if (bytes < 1024 * 1024) {
@@ -38,77 +37,54 @@ class _StatsScreenState extends State<StatsScreen> {
   @override
   Widget build(BuildContext context) {
     final stats = _stats;
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('Statistiques', style: TextStyle(color: Colors.white)),
+        title: Text('Statistiques', style: TextStyle(color: onSurface)),
       ),
       body: stats == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // ← Carte mise en avant : espace libéré
-          _HighlightCard(
-            icon: Icons.storage_rounded,
-            label: 'Espace total libéré',
-            value: _formatBytes(stats['totalBytesFreed']!),
-          ),
-          const SizedBox(height: 24),
+              padding: const EdgeInsets.all(20),
+              children: [
+                _HighlightCard(
+                  icon: Icons.storage_rounded,
+                  label: 'Espace total libéré',
+                  value: _formatBytes(stats['totalBytesFreed']!),
+                ),
+                const SizedBox(height: 24),
 
-          const Text('Total global',
-              style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          _StatTile(
-            icon: Icons.favorite,
-            color: Colors.green,
-            label: 'Photos gardées',
-            value: '${stats['totalKept']}',
-          ),
-          _StatTile(
-            icon: Icons.delete,
-            color: Colors.red,
-            label: 'Photos supprimées',
-            value: '${stats['totalDeleted']}',
-          ),
-          _StatTile(
-            icon: Icons.check_circle_outline,
-            color: Colors.purpleAccent,
-            label: 'Sessions de tri terminées',
-            value: '${stats['sessions']}',
-          ),
+                Text('Total global',
+                    style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.7),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _StatTile(icon: Icons.favorite, color: Colors.green, label: 'Photos gardées', value: '${stats['totalKept']}'),
+                _StatTile(icon: Icons.delete, color: Colors.red, label: 'Photos supprimées', value: '${stats['totalDeleted']}'),
+                _StatTile(icon: Icons.check_circle_outline, color: Colors.purpleAccent, label: 'Sessions de tri terminées', value: '${stats['sessions']}'),
 
-          const SizedBox(height: 24),
-          const Text('Dernière session',
-              style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          _StatTile(
-            icon: Icons.favorite,
-            color: Colors.green,
-            label: 'Photos gardées',
-            value: '${stats['lastKept']}',
-          ),
-          _StatTile(
-            icon: Icons.delete,
-            color: Colors.red,
-            label: 'Photos supprimées',
-            value: '${stats['lastDeleted']}',
-          ),
-          _StatTile(
-            icon: Icons.storage_rounded,
-            color: Colors.blueAccent,
-            label: 'Espace libéré',
-            value: _formatBytes(stats['lastBytesFreed']!),
-          ),
-        ],
-      ),
+                const SizedBox(height: 24),
+                Text('Dernière session',
+                    style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.7),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _StatTile(icon: Icons.favorite, color: Colors.green, label: 'Photos gardées', value: '${stats['lastKept']}'),
+                _StatTile(icon: Icons.delete, color: Colors.red, label: 'Photos supprimées', value: '${stats['lastDeleted']}'),
+                _StatTile(icon: Icons.storage_rounded, color: Colors.blueAccent, label: 'Espace libéré', value: _formatBytes(stats['lastBytesFreed']!)),
+              ],
+            ),
     );
   }
 }
 
-// Carte mise en avant pour la statistique principale
+// Carte mise en avant — toujours sur fond dégradé sombre, couleurs fixes
 class _HighlightCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -142,7 +118,6 @@ class _HighlightCard extends StatelessWidget {
   }
 }
 
-// Ligne de statistique simple
 class _StatTile extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -153,11 +128,12 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -165,10 +141,10 @@ class _StatTile extends StatelessWidget {
           Icon(icon, color: color, size: 22),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+            child: Text(label,
+                style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 14)),
           ),
-          Text(value,
-              style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
         ],
       ),
     );

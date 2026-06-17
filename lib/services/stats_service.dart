@@ -56,4 +56,15 @@ class StatsService {
       'lastBytesFreed': prefs.getInt(_keyLastBytesFreed) ?? 0,
     };
   }
-}
+
+// Ajoute cette méthode dans StatsService
+  Future<void> resetStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyTotalKept);
+    await prefs.remove(_keyTotalDeleted);
+    await prefs.remove(_keyTotalBytesFreed);
+    await prefs.remove(_keySessions);
+    await prefs.remove(_keyLastKept);
+    await prefs.remove(_keyLastDeleted);
+    await prefs.remove(_keyLastBytesFreed);
+  }}

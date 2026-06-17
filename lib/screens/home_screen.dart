@@ -57,37 +57,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoSorterProvider>();
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: bg,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (!provider.hasPermission) {
       return PermissionGateScreen(
         isPermanentlyDenied:
-        provider.permissionStatus == PermissionStatus.permanentlyDenied,
+            provider.permissionStatus == PermissionStatus.permanentlyDenied,
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('Picder',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Picder', style: TextStyle(color: onSurface, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bar_chart, color: Colors.white70),
+            icon: Icon(Icons.bar_chart, color: onSurface.withValues(alpha: 0.7)),
             tooltip: 'Statistiques',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const StatsScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white70),
+            icon: Icon(Icons.settings, color: onSurface.withValues(alpha: 0.7)),
             tooltip: 'Réglages',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -96,39 +97,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       ),
       body: _albums == null || _albums!.isEmpty
-          ? const Center(
-        child: Text('Aucun album trouvé',
-            style: TextStyle(color: Colors.white54)),
-      )
+          ? Center(
+              child: Text('Aucun album trouvé',
+                  style: TextStyle(color: onSurface.withValues(alpha: 0.54))),
+            )
           : GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.85,
-        ),
-        itemCount: _albums!.length + 1, // +1 pour la carte Pro
-        itemBuilder: (context, index) {
-          if (index == _albums!.length) {
-            return _ProCard(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProScreen()),
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.85,
               ),
-            );
-          }
-          final album = _albums![index];
-          return _AlbumCard(
-            album: album,
-            onTap: () {
-              provider.setAlbum(album.path);
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SwipeScreen()),
-              );
-            },
-          );
-        },
-      ),
+              itemCount: _albums!.length + 1,
+              itemBuilder: (context, index) {
+                if (index == _albums!.length) {
+                  return _ProCard(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProScreen()),
+                    ),
+                  );
+                }
+                final album = _albums![index];
+                return _AlbumCard(
+                  album: album,
+                  onTap: () {
+                    provider.setAlbum(album.path);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SwipeScreen()),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }
@@ -157,7 +158,7 @@ class _AlbumCard extends StatelessWidget {
               )
             else
               Container(color: Colors.grey[900]),
-            // Dégradé pour la lisibilité du texte
+            // Dégradé sur image — toujours sombre, indépendant du thème
             Positioned(
               left: 0,
               right: 0,
@@ -179,14 +180,11 @@ class _AlbumCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
+                          color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     Text(
                       '${album.count} photos',
-                      style: const TextStyle(
-                          color: Colors.white60, fontSize: 12),
+                      style: const TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                   ],
                 ),
@@ -224,10 +222,7 @@ class _ProCard extends StatelessWidget {
               Icon(Icons.workspace_premium, color: Colors.white, size: 36),
               SizedBox(height: 8),
               Text('Picder Pro',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16)),
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               Text('Vidéos · Sync cloud',
                   style: TextStyle(color: Colors.white70, fontSize: 11)),
             ],
