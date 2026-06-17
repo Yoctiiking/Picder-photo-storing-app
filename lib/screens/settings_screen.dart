@@ -137,7 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Code source',
             subtitle: 'Voir le projet sur GitHub',
             onTap: () {
-              _openUrl('https://github.com/Yoctiiking/Picder-photo-storing-app.git');
+              _openUrl('https://github.com/Yoctiiking/Picder-photo-storing-app');
             },
           ),
           _SettingsTile(
