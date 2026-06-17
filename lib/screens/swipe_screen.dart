@@ -75,6 +75,8 @@ class _SwipeScreenState extends State<SwipeScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoSorterProvider>();
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     if (!provider.isLoading && !provider.hasPermission) {
       return PermissionGateScreen(
@@ -84,9 +86,9 @@ class _SwipeScreenState extends State<SwipeScreen>
     }
 
     if (provider.isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: bg,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -101,11 +103,11 @@ class _SwipeScreenState extends State<SwipeScreen>
 
     if (provider.allPhotos.isEmpty) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: bg,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.grid_view_outlined, color: Colors.white70),
+            icon: Icon(Icons.grid_view_outlined, color: onSurface.withValues(alpha: 0.7)),
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Retour au menu',
           ),
@@ -114,24 +116,16 @@ class _SwipeScreenState extends State<SwipeScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.photo_library_outlined,
-                color: Colors.white24,
-                size: 80,
-              ),
+              Icon(Icons.photo_library_outlined, color: onSurface.withValues(alpha: 0.24), size: 80),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Galerie vide',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: onSurface, fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Toutes tes photos ont déjà été triées.',
-                style: TextStyle(color: Colors.white54, fontSize: 15),
+                style: TextStyle(color: onSurface.withValues(alpha: 0.54), fontSize: 15),
               ),
             ],
           ),
@@ -140,28 +134,26 @@ class _SwipeScreenState extends State<SwipeScreen>
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.grid_view_outlined, color: Colors.white70),
+          icon: Icon(Icons.grid_view_outlined, color: onSurface.withValues(alpha: 0.7)),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: 'Retour au menu',
         ),
         title: Text(
           '${provider.remaining} photos restantes',
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+          style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 14),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(
               Icons.undo_rounded,
-              color: provider.canUndo ? Colors.white : Colors.white24,
+              color: provider.canUndo ? onSurface : onSurface.withValues(alpha: 0.24),
             ),
-            onPressed: provider.canUndo
-                ? () => _swiperController.undo()
-                : null,
+            onPressed: provider.canUndo ? () => _swiperController.undo() : null,
             tooltip: 'Annuler',
           ),
           Stack(
@@ -170,14 +162,11 @@ class _SwipeScreenState extends State<SwipeScreen>
               IconButton(
                 icon: Icon(
                   Icons.delete_outline_rounded,
-                  color: provider.toDelete.isNotEmpty
-                      ? Colors.red
-                      : Colors.white24,
+                  color: provider.toDelete.isNotEmpty ? Colors.red : onSurface.withValues(alpha: 0.24),
                 ),
                 onPressed: provider.toDelete.isNotEmpty
                     ? () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                              builder: (_) => const SummaryScreen()),
+                          MaterialPageRoute(builder: (_) => const SummaryScreen()),
                         )
                     : null,
                 tooltip: 'Supprimer maintenant',
@@ -188,17 +177,10 @@ class _SwipeScreenState extends State<SwipeScreen>
                   right: 8,
                   child: Container(
                     padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                     child: Text(
                       '${provider.toDelete.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -230,22 +212,20 @@ class _SwipeScreenState extends State<SwipeScreen>
                 provider.undo();
                 return true;
               },
-              cardBuilder:
-                  (context, index, percentThresholdX, percentThresholdY) {
+              cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
                 if (index < 0 || index >= provider.allPhotos.length) {
                   return const SizedBox.shrink();
                 }
                 return Stack(
                   children: [
                     PhotoCard(photo: provider.allPhotos[index]),
-                    // Overlay coloré selon la direction du swipe
                     Positioned.fill(
                       child: IgnorePointer(
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
                           child: Builder(builder: (_) {
                             final t = (percentThresholdX.abs() / 100).clamp(0.0, 1.0);
-                            final alpha = t * t * t * t * 0.7; // courbe quartique
+                            final alpha = t * t * t * t * 0.7;
                             return Container(
                               color: percentThresholdX > 0
                                   ? Colors.green.withValues(alpha: alpha)
@@ -271,39 +251,24 @@ class _SwipeScreenState extends State<SwipeScreen>
                   color: Colors.red,
                   label: 'Supprimer',
                   scaleAnimation: _deleteScale,
-                  onTap: () =>
-                      _swiperController.swipe(CardSwiperDirection.left),
+                  onTap: () => _swiperController.swipe(CardSwiperDirection.left),
                 ),
                 Column(
                   children: [
                     Text(
                       '${provider.toDelete.length}',
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: Colors.red, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    const Text(
-                      'à supprimer',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
+                    Text('à supprimer', style: TextStyle(color: onSurface.withValues(alpha: 0.54), fontSize: 11)),
                   ],
                 ),
                 Column(
                   children: [
                     Text(
                       '${provider.toKeep.length}',
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: Colors.green, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    const Text(
-                      'gardées',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
+                    Text('gardées', style: TextStyle(color: onSurface.withValues(alpha: 0.54), fontSize: 11)),
                   ],
                 ),
                 _ActionButton(
@@ -311,8 +276,7 @@ class _SwipeScreenState extends State<SwipeScreen>
                   color: Colors.green,
                   label: 'Garder',
                   scaleAnimation: _keepScale,
-                  onTap: () =>
-                      _swiperController.swipe(CardSwiperDirection.right),
+                  onTap: () => _swiperController.swipe(CardSwiperDirection.right),
                 ),
               ],
             ),

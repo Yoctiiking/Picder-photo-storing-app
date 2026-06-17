@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../services/gallery_service.dart';
+import '../services/settings_service.dart';
 import '../services/stats_service.dart';
 
 class PhotoSorterProvider extends ChangeNotifier {
   final GalleryService _galleryService = GalleryService();
   final StatsService _statsService = StatsService();
+  final SettingsService _settingsService = SettingsService();
 
   List<AssetEntity> _allPhotos = []; // Toutes les photos
   AssetPathEntity? _currentAlbum;
@@ -88,7 +90,12 @@ class PhotoSorterProvider extends ChangeNotifier {
     // 2. Permissions: OK - Charger les photos
     // ← Exclut les photos déjà gardées des sessions précédentes
     final excludeIds = _toKeep.map((p) => p.id).toList();
-    _allPhotos = await _galleryService.loadPhotosFromAlbum(_currentAlbum!, excludeIds: excludeIds);
+    final includeGifs = await _settingsService.getIncludeGifs();
+    _allPhotos = await _galleryService.loadPhotosFromAlbum(
+      _currentAlbum!,
+      excludeIds: excludeIds,
+      includeGifs: includeGifs,
+    );
     _currentIndex = 0;
     _isLoading = false;
     _isFinished = false;

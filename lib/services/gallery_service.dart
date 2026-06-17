@@ -76,7 +76,7 @@ class GalleryService {
   // Récupère tous les albums avec leur miniature
   Future<List<AlbumInfo>> getAlbums() async {
     final PermissionState permission =
-    await PhotoManager.requestPermissionExtend();
+        await PhotoManager.requestPermissionExtend();
     if (!permission.isAuth) return [];
 
     final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
@@ -111,15 +111,35 @@ class GalleryService {
 
   // Charge les photos d'un album précis
   Future<List<AssetEntity>> loadPhotosFromAlbum(
-      AssetPathEntity album, {
-        List<String> excludeIds = const [],
-      }) async {
+    AssetPathEntity album, {
+    List<String> excludeIds = const [],
+    bool includeGifs = true,
+  }) async {
     final int count = await album.assetCountAsync;
     if (count == 0) return [];
 
-    final photos = await album.getAssetListRange(start: 0, end: count);
-    if (excludeIds.isEmpty) return photos;
-    return photos.where((p) => !excludeIds.contains(p.id)).toList();
+    List<AssetEntity> photos = await album.getAssetListRange(
+      start: 0,
+      end: count,
+    );
+
+    if (excludeIds.isNotEmpty) {
+      photos = photos.where((p) => !excludeIds.contains(p.id)).toList();
+    }
+
+    // ← Filtre les GIFs si désactivé
+    if (!includeGifs) {
+      final filtered = <AssetEntity>[];
+      for (final photo in photos) {
+        final mimeType = await photo.mimeTypeAsync;
+        if (mimeType != 'image/gif') {
+          filtered.add(photo);
+        }
+      }
+      return filtered;
+    }
+
+    return photos;
   }
 
   // Supprime définitivement une liste de photos
