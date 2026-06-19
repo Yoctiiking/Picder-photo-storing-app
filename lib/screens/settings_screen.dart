@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/settings_service.dart';
 import '../services/stats_service.dart';
 import '../utils/responsive.dart';
+import 'auth_screen.dart';
 import 'pro_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -47,6 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = context.watch<ThemeProvider>();
     final bg = Theme.of(context).scaffoldBackgroundColor;
     final onSurface = Theme.of(context).colorScheme.onSurface;
+    final authProvider = context.watch<AuthProvider>();
 
     if (_loading) {
       return Scaffold(
@@ -72,11 +75,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SettingsTile(
                 icon: Icons.workspace_premium,
                 iconColor: Colors.amber,
-                title: 'Picder Free',
-                subtitle: 'Découvrir Picder Pro',
-                onTap: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const ProScreen())),
+                title: authProvider.isLoggedIn
+                    ? (authProvider.isPro ? 'Picder Pro' : 'Picder Free')
+                    : 'Se connecter',
+                subtitle: authProvider.isLoggedIn
+                    ? authProvider.user?.email
+                    : 'Connecte-toi pour débloquer Picder Pro',
+                onTap: () {
+                  if (authProvider.isLoggedIn) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProScreen()),
+                    );
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                    );
+                  }
+                },
               ),
 
               _SectionHeader('Apparence'),
