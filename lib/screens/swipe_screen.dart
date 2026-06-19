@@ -6,6 +6,7 @@ import '../providers/photo_sorter_provider.dart';
 import '../services/ads_service.dart';
 import '../services/gallery_service.dart';
 import '../services/rewarded_ad_service.dart';
+import '../utils/responsive.dart';
 import '../widgets/photo_card.dart';
 import 'summary_screen.dart';
 import '../widgets/banner_ad_widget.dart';
@@ -135,32 +136,39 @@ class _SwipeScreenState extends State<SwipeScreen>
           ),
         ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.photo_library_outlined,
-                color: onSurface.withValues(alpha: 0.24),
-                size: 80,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: Responsive.maxContentWidth(context),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.photo_library_outlined,
+                    color: onSurface.withValues(alpha: 0.24),
+                    size: 80,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Galerie vide',
+                    style: TextStyle(
+                      color: onSurface,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Toutes tes photos ont déjà été triées.',
+                    style: TextStyle(
+                      color: onSurface.withValues(alpha: 0.54),
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Galerie vide',
-                style: TextStyle(
-                  color: onSurface,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Toutes tes photos ont déjà été triées.',
-                style: TextStyle(
-                  color: onSurface.withValues(alpha: 0.54),
-                  fontSize: 15,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -240,130 +248,144 @@ class _SwipeScreenState extends State<SwipeScreen>
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: CardSwiper(
-              controller: _swiperController,
-              cardsCount: provider.allPhotos.length,
-              initialIndex: 0,
-              numberOfCardsDisplayed: provider.allPhotos.length.clamp(1, 3),
-              backCardOffset: const Offset(0, 20),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              onSwipe: (previousIndex, currentIndex, direction) {
-                if (direction == CardSwiperDirection.right) {
-                  provider.keepPhoto();
-                  _keepAnimCtrl.forward(from: 0);
-                } else if (direction == CardSwiperDirection.left) {
-                  provider.deletePhoto();
-                  _deleteAnimCtrl.forward(from: 0);
-                }
-                return true;
-              },
-              onUndo: (previousIndex, currentIndex, direction) {
-                provider.undo();
-                return true;
-              },
-              cardBuilder:
-                  (context, index, percentThresholdX, percentThresholdY) {
-                    if (index < 0 || index >= provider.allPhotos.length) {
-                      return const SizedBox.shrink();
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: Responsive.maxSwipeWidth(context),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: CardSwiper(
+                  controller: _swiperController,
+                  cardsCount: provider.allPhotos.length,
+                  initialIndex: 0,
+                  numberOfCardsDisplayed: provider.allPhotos.length.clamp(1, 3),
+                  backCardOffset: const Offset(0, 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  onSwipe: (previousIndex, currentIndex, direction) {
+                    if (direction == CardSwiperDirection.right) {
+                      provider.keepPhoto();
+                      _keepAnimCtrl.forward(from: 0);
+                    } else if (direction == CardSwiperDirection.left) {
+                      provider.deletePhoto();
+                      _deleteAnimCtrl.forward(from: 0);
                     }
-                    return Stack(
-                      children: [
-                        PhotoCard(photo: provider.allPhotos[index]),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Builder(
-                                builder: (_) {
-                                  final t = (percentThresholdX.abs() / 100)
-                                      .clamp(0.0, 1.0);
-                                  final alpha = t * t * t * t * 0.7;
-                                  return Container(
-                                    color: percentThresholdX > 0
-                                        ? Colors.green.withValues(alpha: alpha)
-                                        : Colors.red.withValues(alpha: alpha),
-                                  );
-                                },
+                    return true;
+                  },
+                  onUndo: (previousIndex, currentIndex, direction) {
+                    provider.undo();
+                    return true;
+                  },
+                  cardBuilder:
+                      (context, index, percentThresholdX, percentThresholdY) {
+                        if (index < 0 || index >= provider.allPhotos.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Stack(
+                          children: [
+                            PhotoCard(photo: provider.allPhotos[index]),
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Builder(
+                                    builder: (_) {
+                                      final t = (percentThresholdX.abs() / 100)
+                                          .clamp(0.0, 1.0);
+                                      final alpha = t * t * t * t * 0.7;
+                                      return Container(
+                                        color: percentThresholdX > 0
+                                            ? Colors.green.withValues(
+                                                alpha: alpha,
+                                              )
+                                            : Colors.red.withValues(
+                                                alpha: alpha,
+                                              ),
+                                      );
+                                    },
+                                  ),
+                                ),
                               ),
                             ),
+                          ],
+                        );
+                      },
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _ActionButton(
+                      icon: Icons.close,
+                      color: Colors.red,
+                      label: 'Supprimer',
+                      scaleAnimation: _deleteScale,
+                      onTap: () =>
+                          _swiperController.swipe(CardSwiperDirection.left),
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          '${provider.toDelete.length}',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'à supprimer',
+                          style: TextStyle(
+                            color: onSurface.withValues(alpha: 0.54),
+                            fontSize: 11,
                           ),
                         ),
                       ],
-                    );
-                  },
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _ActionButton(
-                  icon: Icons.close,
-                  color: Colors.red,
-                  label: 'Supprimer',
-                  scaleAnimation: _deleteScale,
-                  onTap: () =>
-                      _swiperController.swipe(CardSwiperDirection.left),
-                ),
-                Column(
-                  children: [
-                    Text(
-                      '${provider.toDelete.length}',
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                    Text(
-                      'à supprimer',
-                      style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.54),
-                        fontSize: 11,
-                      ),
+                    Column(
+                      children: [
+                        Text(
+                          '${provider.toKeep.length}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'gardées',
+                          style: TextStyle(
+                            color: onSurface.withValues(alpha: 0.54),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    _ActionButton(
+                      icon: Icons.favorite,
+                      color: Colors.green,
+                      label: 'Garder',
+                      scaleAnimation: _keepScale,
+                      onTap: () =>
+                          _swiperController.swipe(CardSwiperDirection.right),
                     ),
                   ],
                 ),
-                Column(
-                  children: [
-                    Text(
-                      '${provider.toKeep.length}',
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'gardées',
-                      style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.54),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-                _ActionButton(
-                  icon: Icons.favorite,
-                  color: Colors.green,
-                  label: 'Garder',
-                  scaleAnimation: _keepScale,
-                  onTap: () =>
-                      _swiperController.swipe(CardSwiperDirection.right),
-                ),
-              ],
-            ),
+              ),
+              if (!_bannerHidden)
+                BannerAdWidget(
+                  onBannerHidden: () => setState(() => _bannerHidden = true),
+                ), // ← Bannière publicitaire conditionnel
+            ],
           ),
-          if (!_bannerHidden)
-            BannerAdWidget(
-              onBannerHidden: () => setState(() => _bannerHidden = true),
-            ), // ← Bannière publicitaire conditionnel
-        ],
+        ),
       ),
     );
   }
