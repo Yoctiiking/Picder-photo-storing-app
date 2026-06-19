@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "491483932831",
+    "project_id": "picder-photo-storing-app",
+    "storage_bucket": "picder-photo-storing-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:491483932831:android:5c76a81a2303b458dbdaaa",
+        "android_client_info": {
+          "package_name": "com.example.picder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoM42YXUyi5mTqiuhrpb1aMb9_63lOyzU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
