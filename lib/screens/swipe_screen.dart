@@ -187,23 +187,6 @@ class _SwipeScreenState extends State<SwipeScreen>
         ),
         centerTitle: true,
         actions: [
-          // ← Bouton retirer la pub temporairement
-          if (!_bannerHidden)
-            IconButton(
-              icon: Icon(
-                Icons.play_circle_outline,
-                color: onSurface.withValues(alpha: 0.7),
-              ),
-              tooltip: 'Retirer la pub pendant 1h',
-              onPressed: () async {
-                await _rewardedAdService.show(
-                  onRewarded: () async {
-                    await _adsService.hideBannerTemporarily();
-                    if (mounted) setState(() => _bannerHidden = true);
-                  },
-                );
-              },
-            ),
           IconButton(
             icon: Icon(
               Icons.undo_rounded,
@@ -376,7 +359,10 @@ class _SwipeScreenState extends State<SwipeScreen>
               ],
             ),
           ),
-          if (!_bannerHidden) const BannerAdWidget(), // ← Bannière publicitaire conditionnel
+          if (!_bannerHidden)
+            BannerAdWidget(
+              onBannerHidden: () => setState(() => _bannerHidden = true),
+            ), // ← Bannière publicitaire conditionnel
         ],
       ),
     );
