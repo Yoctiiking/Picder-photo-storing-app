@@ -3,9 +3,12 @@ import 'package:picder/screens/permission_gate_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import '../providers/photo_sorter_provider.dart';
+import '../services/ads_service.dart';
 import '../services/gallery_service.dart';
+import '../services/rewarded_ad_service.dart';
 import '../widgets/photo_card.dart';
 import 'summary_screen.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
@@ -17,6 +20,10 @@ class SwipeScreen extends StatefulWidget {
 class _SwipeScreenState extends State<SwipeScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   final CardSwiperController _swiperController = CardSwiperController();
+
+  final RewardedAdService _rewardedAdService = RewardedAdService();
+  final AdsService _adsService = AdsService();
+  bool _bannerHidden = false;
 
   late final AnimationController _deleteAnimCtrl;
   late final AnimationController _keepAnimCtrl;
@@ -36,10 +43,13 @@ class _SwipeScreenState extends State<SwipeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _deleteScale = TweenSequence([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
-    ]).animate(CurvedAnimation(parent: _deleteAnimCtrl, curve: Curves.easeInOut));
+    _deleteScale =
+        TweenSequence([
+          TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
+          TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
+        ]).animate(
+          CurvedAnimation(parent: _deleteAnimCtrl, curve: Curves.easeInOut),
+        );
     _keepScale = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
       TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
@@ -54,6 +64,14 @@ class _SwipeScreenState extends State<SwipeScreen>
         provider.resetIndex();
       }
     });
+
+    _rewardedAdService.preload(); // ← précharge dès l'arrivée sur l'écran
+    _checkBannerStatus();
+  }
+
+  Future<void> _checkBannerStatus() async {
+    final hidden = await _adsService.isBannerHidden();
+    if (mounted) setState(() => _bannerHidden = hidden);
   }
 
   @override
@@ -62,6 +80,7 @@ class _SwipeScreenState extends State<SwipeScreen>
     _swiperController.dispose();
     _deleteAnimCtrl.dispose();
     _keepAnimCtrl.dispose();
+    _rewardedAdService.dispose();
     super.dispose();
   }
 
@@ -107,7 +126,10 @@ class _SwipeScreenState extends State<SwipeScreen>
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           leading: IconButton(
-            icon: Icon(Icons.grid_view_outlined, color: onSurface.withValues(alpha: 0.7)),
+            icon: Icon(
+              Icons.grid_view_outlined,
+              color: onSurface.withValues(alpha: 0.7),
+            ),
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Retour au menu',
           ),
@@ -116,16 +138,27 @@ class _SwipeScreenState extends State<SwipeScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.photo_library_outlined, color: onSurface.withValues(alpha: 0.24), size: 80),
+              Icon(
+                Icons.photo_library_outlined,
+                color: onSurface.withValues(alpha: 0.24),
+                size: 80,
+              ),
               const SizedBox(height: 24),
               Text(
                 'Galerie vide',
-                style: TextStyle(color: onSurface, fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Toutes tes photos ont déjà été triées.',
-                style: TextStyle(color: onSurface.withValues(alpha: 0.54), fontSize: 15),
+                style: TextStyle(
+                  color: onSurface.withValues(alpha: 0.54),
+                  fontSize: 15,
+                ),
               ),
             ],
           ),
@@ -138,20 +171,28 @@ class _SwipeScreenState extends State<SwipeScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.grid_view_outlined, color: onSurface.withValues(alpha: 0.7)),
+          icon: Icon(
+            Icons.grid_view_outlined,
+            color: onSurface.withValues(alpha: 0.7),
+          ),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: 'Retour au menu',
         ),
         title: Text(
           '${provider.remaining} photos restantes',
-          style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 14),
+          style: TextStyle(
+            color: onSurface.withValues(alpha: 0.7),
+            fontSize: 14,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(
               Icons.undo_rounded,
-              color: provider.canUndo ? onSurface : onSurface.withValues(alpha: 0.24),
+              color: provider.canUndo
+                  ? onSurface
+                  : onSurface.withValues(alpha: 0.24),
             ),
             onPressed: provider.canUndo ? () => _swiperController.undo() : null,
             tooltip: 'Annuler',
@@ -162,12 +203,16 @@ class _SwipeScreenState extends State<SwipeScreen>
               IconButton(
                 icon: Icon(
                   Icons.delete_outline_rounded,
-                  color: provider.toDelete.isNotEmpty ? Colors.red : onSurface.withValues(alpha: 0.24),
+                  color: provider.toDelete.isNotEmpty
+                      ? Colors.red
+                      : onSurface.withValues(alpha: 0.24),
                 ),
                 onPressed: provider.toDelete.isNotEmpty
                     ? () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const SummaryScreen()),
-                        )
+                        MaterialPageRoute(
+                          builder: (_) => const SummaryScreen(),
+                        ),
+                      )
                     : null,
                 tooltip: 'Supprimer maintenant',
               ),
@@ -177,10 +222,17 @@ class _SwipeScreenState extends State<SwipeScreen>
                   right: 8,
                   child: Container(
                     padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
                     child: Text(
                       '${provider.toDelete.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -212,32 +264,36 @@ class _SwipeScreenState extends State<SwipeScreen>
                 provider.undo();
                 return true;
               },
-              cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-                if (index < 0 || index >= provider.allPhotos.length) {
-                  return const SizedBox.shrink();
-                }
-                return Stack(
-                  children: [
-                    PhotoCard(photo: provider.allPhotos[index]),
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Builder(builder: (_) {
-                            final t = (percentThresholdX.abs() / 100).clamp(0.0, 1.0);
-                            final alpha = t * t * t * t * 0.7;
-                            return Container(
-                              color: percentThresholdX > 0
-                                  ? Colors.green.withValues(alpha: alpha)
-                                  : Colors.red.withValues(alpha: alpha),
-                            );
-                          }),
+              cardBuilder:
+                  (context, index, percentThresholdX, percentThresholdY) {
+                    if (index < 0 || index >= provider.allPhotos.length) {
+                      return const SizedBox.shrink();
+                    }
+                    return Stack(
+                      children: [
+                        PhotoCard(photo: provider.allPhotos[index]),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Builder(
+                                builder: (_) {
+                                  final t = (percentThresholdX.abs() / 100)
+                                      .clamp(0.0, 1.0);
+                                  final alpha = t * t * t * t * 0.7;
+                                  return Container(
+                                    color: percentThresholdX > 0
+                                        ? Colors.green.withValues(alpha: alpha)
+                                        : Colors.red.withValues(alpha: alpha),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+                      ],
+                    );
+                  },
             ),
           ),
 
@@ -251,24 +307,45 @@ class _SwipeScreenState extends State<SwipeScreen>
                   color: Colors.red,
                   label: 'Supprimer',
                   scaleAnimation: _deleteScale,
-                  onTap: () => _swiperController.swipe(CardSwiperDirection.left),
+                  onTap: () =>
+                      _swiperController.swipe(CardSwiperDirection.left),
                 ),
                 Column(
                   children: [
                     Text(
                       '${provider.toDelete.length}',
-                      style: const TextStyle(color: Colors.red, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    Text('à supprimer', style: TextStyle(color: onSurface.withValues(alpha: 0.54), fontSize: 11)),
+                    Text(
+                      'à supprimer',
+                      style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.54),
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
                 Column(
                   children: [
                     Text(
                       '${provider.toKeep.length}',
-                      style: const TextStyle(color: Colors.green, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    Text('gardées', style: TextStyle(color: onSurface.withValues(alpha: 0.54), fontSize: 11)),
+                    Text(
+                      'gardées',
+                      style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.54),
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
                 _ActionButton(
@@ -276,11 +353,16 @@ class _SwipeScreenState extends State<SwipeScreen>
                   color: Colors.green,
                   label: 'Garder',
                   scaleAnimation: _keepScale,
-                  onTap: () => _swiperController.swipe(CardSwiperDirection.right),
+                  onTap: () =>
+                      _swiperController.swipe(CardSwiperDirection.right),
                 ),
               ],
             ),
           ),
+          if (!_bannerHidden)
+            BannerAdWidget(
+              onBannerHidden: () => setState(() => _bannerHidden = true),
+            ), // ← Bannière publicitaire conditionnel
         ],
       ),
     );
