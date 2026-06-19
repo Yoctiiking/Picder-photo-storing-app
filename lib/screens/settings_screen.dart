@@ -93,6 +93,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 },
               ),
+              // ← Nouvelle tuile, visible seulement si connecté
+              if (authProvider.isLoggedIn)
+                _SettingsTile(
+                  icon: Icons.logout,
+                  iconColor: Colors.red,
+                  title: 'Se déconnecter',
+                  onTap: () => _confirmSignOut(authProvider),
+                ),
 
               _SectionHeader('Apparence'),
               _SettingsTile(
@@ -258,6 +266,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Statistiques réinitialisées')),
         );
+      }
+    }
+  }
+
+  Future<void> _confirmSignOut(AuthProvider authProvider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Se déconnecter ?'),
+        content: const Text(
+          'Tu pourras te reconnecter à tout moment avec ton email.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Se déconnecter',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await authProvider.signOut();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Déconnecté')));
       }
     }
   }
