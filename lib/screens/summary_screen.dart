@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:picder/screens/swipe_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/photo_sorter_provider.dart';
+import '../services/rewarded_ad_service.dart';
 import '../services/settings_service.dart';
 
 class SummaryScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class SummaryScreen extends StatefulWidget {
 
 class _SummaryScreenState extends State<SummaryScreen> {
   final SettingsService _settingsService = SettingsService();
+  final RewardedAdService _rewardedAdService = RewardedAdService();
   bool _confirmDelete = false;
 
   @override
@@ -21,6 +23,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
     _settingsService.getConfirmDelete().then((value) {
       if (mounted) setState(() => _confirmDelete = value);
     });
+    _rewardedAdService.preload(); // ← précharge dès l'arrivée sur l'écran
+  }
+
+  @override
+  void dispose() {
+    _rewardedAdService.dispose();
+    super.dispose();
   }
 
   @override
@@ -35,7 +44,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
         backgroundColor: Colors.transparent,
         leading: provider.remaining > 0
             ? IconButton(
-                icon: Icon(Icons.arrow_back, color: onSurface.withValues(alpha: 0.7)),
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: onSurface.withValues(alpha: 0.7),
+                ),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const SwipeScreen()),
@@ -50,27 +62,48 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+              const Icon(
+                Icons.check_circle_outline,
+                color: Colors.green,
+                size: 80,
+              ),
               const SizedBox(height: 24),
               Text(
                 provider.remaining > 0 ? 'Valider le tri ?' : 'Tri terminé !',
-                style: TextStyle(color: onSurface, fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: onSurface,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 32),
 
-              _StatRow(label: 'Photos gardées', count: provider.toKeep.length, color: Colors.green),
+              _StatRow(
+                label: 'Photos gardées',
+                count: provider.toKeep.length,
+                color: Colors.green,
+              ),
               const SizedBox(height: 12),
-              _StatRow(label: 'Photos supprimées', count: provider.toDelete.length, color: Colors.red),
+              _StatRow(
+                label: 'Photos supprimées',
+                count: provider.toDelete.length,
+                color: Colors.red,
+              ),
               const SizedBox(height: 48),
 
               if (provider.toDelete.isNotEmpty)
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
                   ),
                   icon: const Icon(Icons.delete_forever),
-                  label: Text('Supprimer ${provider.toDelete.length} photos définitivement'),
+                  label: Text(
+                    'Supprimer ${provider.toDelete.length} photos définitivement',
+                  ),
                   onPressed: () async {
                     bool shouldDelete = true;
 
@@ -90,7 +123,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                              child: const Text(
+                                'Supprimer',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           ],
                         ),
@@ -100,10 +136,18 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
                     if (shouldDelete && context.mounted) {
                       await provider.confirmDeletions();
+
+                      // ← Lance directement la vidéo récompensée, sans demander
+                      if (_rewardedAdService.isReady) {
+                        await _rewardedAdService.show(onRewarded: () {});
+                      }
+
                       if (context.mounted) {
                         provider.reload();
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const SwipeScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const SwipeScreen(),
+                          ),
                         );
                       }
                     }
@@ -113,7 +157,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
               const SizedBox(height: 16),
 
               TextButton.icon(
-                icon: Icon(Icons.refresh, color: onSurface.withValues(alpha: 0.54)),
+                icon: Icon(
+                  Icons.refresh,
+                  color: onSurface.withValues(alpha: 0.54),
+                ),
                 label: Text(
                   'Recommencer',
                   style: TextStyle(color: onSurface.withValues(alpha: 0.54)),
@@ -138,7 +185,11 @@ class _StatRow extends StatelessWidget {
   final int count;
   final Color color;
 
-  const _StatRow({required this.label, required this.count, required this.color});
+  const _StatRow({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -146,8 +197,21 @@ class _StatRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 16)),
-        Text('$count', style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(
+            color: onSurface.withValues(alpha: 0.7),
+            fontSize: 16,
+          ),
+        ),
+        Text(
+          '$count',
+          style: TextStyle(
+            color: color,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }

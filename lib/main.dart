@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:picder/providers/theme_provider.dart';
 import 'package:picder/screens/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'providers/photo_sorter_provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ← requis avant l'init des Ads
+  await MobileAds.instance.initialize(); // ← initialise le SDK AdMob
+
   runApp(
     // MultiProvider injecte nos providers dans tout l'arbre de widgets
     MultiProvider(
