@@ -1,0 +1,38 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "picder-photo-storing-app",
+          "appId": "1:491483932831:android:5c76a81a2303b458dbdaaa",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "picder-photo-storing-app",
+          "appId": "1:491483932831:ios:197cd287193df572dbdaaa",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "picder-photo-storing-app",
+          "appId": "1:491483932831:ios:197cd287193df572dbdaaa",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "picder-photo-storing-app",
+          "configurations": {
+            "android": "1:491483932831:android:5c76a81a2303b458dbdaaa",
+            "ios": "1:491483932831:ios:197cd287193df572dbdaaa"
+          }
+        }
+      }
+    }
+  }
+}
