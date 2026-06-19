@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/stats_service.dart';
+import '../utils/responsive.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -48,37 +49,80 @@ class _StatsScreenState extends State<StatsScreen> {
       ),
       body: stats == null
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _HighlightCard(
-                  icon: Icons.storage_rounded,
-                  label: 'Espace total libéré',
-                  value: _formatBytes(stats['totalBytesFreed']!),
+          : Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: Responsive.maxContentWidth(context),
                 ),
-                const SizedBox(height: 24),
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _HighlightCard(
+                      icon: Icons.storage_rounded,
+                      label: 'Espace total libéré',
+                      value: _formatBytes(stats['totalBytesFreed']!),
+                    ),
+                    const SizedBox(height: 24),
 
-                Text('Total global',
-                    style: TextStyle(
+                    Text(
+                      'Total global',
+                      style: TextStyle(
                         color: onSurface.withValues(alpha: 0.7),
                         fontSize: 14,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _StatTile(icon: Icons.favorite, color: Colors.green, label: 'Photos gardées', value: '${stats['totalKept']}'),
-                _StatTile(icon: Icons.delete, color: Colors.red, label: 'Photos supprimées', value: '${stats['totalDeleted']}'),
-                _StatTile(icon: Icons.check_circle_outline, color: Colors.purpleAccent, label: 'Sessions de tri terminées', value: '${stats['sessions']}'),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _StatTile(
+                      icon: Icons.favorite,
+                      color: Colors.green,
+                      label: 'Photos gardées',
+                      value: '${stats['totalKept']}',
+                    ),
+                    _StatTile(
+                      icon: Icons.delete,
+                      color: Colors.red,
+                      label: 'Photos supprimées',
+                      value: '${stats['totalDeleted']}',
+                    ),
+                    _StatTile(
+                      icon: Icons.check_circle_outline,
+                      color: Colors.purpleAccent,
+                      label: 'Sessions de tri terminées',
+                      value: '${stats['sessions']}',
+                    ),
 
-                const SizedBox(height: 24),
-                Text('Dernière session',
-                    style: TextStyle(
+                    const SizedBox(height: 24),
+                    Text(
+                      'Dernière session',
+                      style: TextStyle(
                         color: onSurface.withValues(alpha: 0.7),
                         fontSize: 14,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _StatTile(icon: Icons.favorite, color: Colors.green, label: 'Photos gardées', value: '${stats['lastKept']}'),
-                _StatTile(icon: Icons.delete, color: Colors.red, label: 'Photos supprimées', value: '${stats['lastDeleted']}'),
-                _StatTile(icon: Icons.storage_rounded, color: Colors.blueAccent, label: 'Espace libéré', value: _formatBytes(stats['lastBytesFreed']!)),
-              ],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _StatTile(
+                      icon: Icons.favorite,
+                      color: Colors.green,
+                      label: 'Photos gardées',
+                      value: '${stats['lastKept']}',
+                    ),
+                    _StatTile(
+                      icon: Icons.delete,
+                      color: Colors.red,
+                      label: 'Photos supprimées',
+                      value: '${stats['lastDeleted']}',
+                    ),
+                    _StatTile(
+                      icon: Icons.storage_rounded,
+                      color: Colors.blueAccent,
+                      label: 'Espace libéré',
+                      value: _formatBytes(stats['lastBytesFreed']!),
+                    ),
+                  ],
+                ),
+              ),
             ),
     );
   }
@@ -90,7 +134,11 @@ class _HighlightCard extends StatelessWidget {
   final String label;
   final String value;
 
-  const _HighlightCard({required this.icon, required this.label, required this.value});
+  const _HighlightCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +156,19 @@ class _HighlightCard extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.white, size: 40),
           const SizedBox(height: 12),
-          Text(value,
-              style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
         ],
       ),
     );
@@ -124,7 +181,12 @@ class _StatTile extends StatelessWidget {
   final String label;
   final String value;
 
-  const _StatTile({required this.icon, required this.color, required this.label, required this.value});
+  const _StatTile({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -141,10 +203,22 @@ class _StatTile extends StatelessWidget {
           Icon(icon, color: color, size: 22),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(label,
-                style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 14)),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: onSurface.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
+            ),
           ),
-          Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );

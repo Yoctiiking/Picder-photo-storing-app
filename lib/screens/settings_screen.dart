@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/settings_service.dart';
 import '../services/stats_service.dart';
+import '../utils/responsive.dart';
 import 'pro_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -60,96 +61,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: Colors.transparent,
         title: Text('Réglages', style: TextStyle(color: onSurface)),
       ),
-      body: ListView(
-        children: [
-          _SectionHeader('Abonnement'),
-          _SettingsTile(
-            icon: Icons.workspace_premium,
-            iconColor: Colors.amber,
-            title: 'Picder Free',
-            subtitle: 'Découvrir Picder Pro',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProScreen()),
-            ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: Responsive.maxContentWidth(context),
           ),
+          child: ListView(
+            children: [
+              _SectionHeader('Abonnement'),
+              _SettingsTile(
+                icon: Icons.workspace_premium,
+                iconColor: Colors.amber,
+                title: 'Picder Free',
+                subtitle: 'Découvrir Picder Pro',
+                onTap: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const ProScreen())),
+              ),
 
-          _SectionHeader('Apparence'),
-          _SettingsTile(
-            icon: Icons.dark_mode_outlined,
-            title: 'Thème',
-            subtitle: _themeLabel(themeProvider.mode),
-            onTap: _showThemePicker,
-          ),
+              _SectionHeader('Apparence'),
+              _SettingsTile(
+                icon: Icons.dark_mode_outlined,
+                title: 'Thème',
+                subtitle: _themeLabel(themeProvider.mode),
+                onTap: _showThemePicker,
+              ),
 
-          _SectionHeader('Comportement du tri'),
-          _SettingsSwitchTile(
-            icon: Icons.vibration,
-            title: 'Vibrations',
-            subtitle: 'Retour haptique lors des swipes',
-            value: _haptics,
-            onChanged: (v) {
-              setState(() => _haptics = v);
-              _settingsService.setHapticsEnabled(v);
-            },
-          ),
-          _SettingsSwitchTile(
-            icon: Icons.warning_amber_rounded,
-            title: 'Confirmation de suppression',
-            subtitle: 'Demander confirmation avant suppression définitive',
-            value: _confirmDelete,
-            onChanged: (v) {
-              setState(() => _confirmDelete = v);
-              _settingsService.setConfirmDelete(v);
-            },
-          ),
-          _SettingsSwitchTile(
-            icon: Icons.gif_box_outlined,
-            title: 'Inclure les GIFs',
-            subtitle: 'Afficher les GIFs animés pendant le tri',
-            value: _includeGifs,
-            onChanged: (v) {
-              setState(() => _includeGifs = v);
-              _settingsService.setIncludeGifs(v);
-            },
-          ),
+              _SectionHeader('Comportement du tri'),
+              _SettingsSwitchTile(
+                icon: Icons.vibration,
+                title: 'Vibrations',
+                subtitle: 'Retour haptique lors des swipes',
+                value: _haptics,
+                onChanged: (v) {
+                  setState(() => _haptics = v);
+                  _settingsService.setHapticsEnabled(v);
+                },
+              ),
+              _SettingsSwitchTile(
+                icon: Icons.warning_amber_rounded,
+                title: 'Confirmation de suppression',
+                subtitle: 'Demander confirmation avant suppression définitive',
+                value: _confirmDelete,
+                onChanged: (v) {
+                  setState(() => _confirmDelete = v);
+                  _settingsService.setConfirmDelete(v);
+                },
+              ),
+              _SettingsSwitchTile(
+                icon: Icons.gif_box_outlined,
+                title: 'Inclure les GIFs',
+                subtitle: 'Afficher les GIFs animés pendant le tri',
+                value: _includeGifs,
+                onChanged: (v) {
+                  setState(() => _includeGifs = v);
+                  _settingsService.setIncludeGifs(v);
+                },
+              ),
 
-          _SectionHeader('Données et confidentialité'),
-          _SettingsTile(
-            icon: Icons.refresh,
-            title: 'Réinitialiser les statistiques',
-            onTap: _confirmResetStats,
-          ),
-          _SettingsTile(
-            icon: Icons.photo_library_outlined,
-            title: 'Permissions de la galerie',
-            subtitle: 'Gérer dans les réglages système',
-            onTap: () => PhotoManager.openSetting(),
-          ),
+              _SectionHeader('Données et confidentialité'),
+              _SettingsTile(
+                icon: Icons.refresh,
+                title: 'Réinitialiser les statistiques',
+                onTap: _confirmResetStats,
+              ),
+              _SettingsTile(
+                icon: Icons.photo_library_outlined,
+                title: 'Permissions de la galerie',
+                subtitle: 'Gérer dans les réglages système',
+                onTap: () => PhotoManager.openSetting(),
+              ),
 
-          _SectionHeader('À propos'),
-          const _SettingsTile(
-            icon: Icons.info_outline,
-            title: 'Version',
-            subtitle: '1.0.0',
+              _SectionHeader('À propos'),
+              const _SettingsTile(
+                icon: Icons.info_outline,
+                title: 'Version',
+                subtitle: '1.0.0',
+              ),
+              _SettingsTile(
+                icon: Icons.code,
+                title: 'Code source',
+                subtitle: 'Voir le projet sur GitHub',
+                onTap: () {
+                  _openUrl(
+                    'https://github.com/Yoctiiking/Picder-photo-storing-app',
+                  );
+                },
+              ),
+              _SettingsTile(
+                icon: Icons.star_outline,
+                title: 'Évaluer Picder',
+                subtitle: 'Laisser un avis sur le store',
+                onTap: () {
+                  // TODO: ouvrir la fiche store via url_launcher
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
-          _SettingsTile(
-            icon: Icons.code,
-            title: 'Code source',
-            subtitle: 'Voir le projet sur GitHub',
-            onTap: () {
-              _openUrl('https://github.com/Yoctiiking/Picder-photo-storing-app');
-            },
-          ),
-          _SettingsTile(
-            icon: Icons.star_outline,
-            title: 'Évaluer Picder',
-            subtitle: 'Laisser un avis sur le store',
-            onTap: () {
-              // TODO: ouvrir la fiche store via url_launcher
-            },
-          ),
-          const SizedBox(height: 24),
-        ],
+        ),
       ),
     );
   }
@@ -175,8 +185,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: AppThemeMode.values.map((mode) {
             return ListTile(
-              title: Text(_themeLabel(mode),
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.onSurface)),
+              title: Text(
+                _themeLabel(mode),
+                style: TextStyle(color: Theme.of(ctx).colorScheme.onSurface),
+              ),
               trailing: themeProvider.mode == mode
                   ? const Icon(Icons.check, color: Colors.green)
                   : null,
@@ -208,14 +220,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Réinitialiser les statistiques ?'),
         content: const Text(
-            'Cette action effacera toutes tes statistiques de tri. Elle est irréversible.'),
+          'Cette action effacera toutes tes statistiques de tri. Elle est irréversible.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Réinitialiser', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Réinitialiser',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -233,6 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+
   const _SectionHeader(this.title);
 
   @override
@@ -275,8 +293,13 @@ class _SettingsTile extends StatelessWidget {
       leading: Icon(icon, color: iconColor ?? onSurface.withValues(alpha: 0.7)),
       title: Text(title, style: TextStyle(color: onSurface)),
       subtitle: subtitle != null
-          ? Text(subtitle!,
-              style: TextStyle(color: onSurface.withValues(alpha: 0.38), fontSize: 12))
+          ? Text(
+              subtitle!,
+              style: TextStyle(
+                color: onSurface.withValues(alpha: 0.38),
+                fontSize: 12,
+              ),
+            )
           : null,
       trailing: onTap != null
           ? Icon(Icons.chevron_right, color: onSurface.withValues(alpha: 0.24))
@@ -307,8 +330,13 @@ class _SettingsSwitchTile extends StatelessWidget {
     return SwitchListTile(
       secondary: Icon(icon, color: onSurface.withValues(alpha: 0.7)),
       title: Text(title, style: TextStyle(color: onSurface)),
-      subtitle: Text(subtitle,
-          style: TextStyle(color: onSurface.withValues(alpha: 0.38), fontSize: 12)),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: onSurface.withValues(alpha: 0.38),
+          fontSize: 12,
+        ),
+      ),
       value: value,
       activeThumbColor: Colors.green,
       onChanged: onChanged,

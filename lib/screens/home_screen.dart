@@ -4,6 +4,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../providers/photo_sorter_provider.dart';
 import '../services/gallery_service.dart';
+import '../utils/responsive.dart';
 import 'permission_gate_screen.dart';
 import 'swipe_screen.dart';
 import 'stats_screen.dart';
@@ -103,8 +104,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             )
           : GridView.builder(
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: Responsive.gridColumns(context),
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 childAspectRatio: 0.85,
