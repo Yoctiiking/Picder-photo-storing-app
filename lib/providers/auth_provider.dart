@@ -16,12 +16,9 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider() {
     _authService.authStateChanges.listen((user) async {
-      debugPrint('Auth state changed: ${user?.email}'); // ← temporaire
       _user = user;
       if (user != null) {
-        debugPrint('Fetching isPro...'); // ← temporaire
         _isPro = await _authService.getIsPro();
-        debugPrint('isPro = $_isPro'); // ← temporaire
       } else {
         _isPro = false;
       }
