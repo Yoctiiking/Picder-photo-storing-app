@@ -31,6 +31,12 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
+  // Ajoute cette méthode dans AuthProvider
+  Future<void> refreshProStatus() async {
+    _isPro = await _authService.getIsPro();
+    notifyListeners();
+  }
+
   Future<String?> signUp({required String email, required String password}) async {
     try {
       await _authService.signUp(email: email, password: password);
