@@ -22,7 +22,7 @@ class AuthService {
       // Crée le document Firestore associé avec le statut Pro par défaut
       await _firestore.collection('users').doc(user.uid).set({
         'email': email,
-        'isPro': false,
+        'proExpiresAt': null,
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
@@ -42,11 +42,22 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // Récupère le statut Pro de l'utilisateur connecté
+  // Retourne true si l'utilisateur a un accès Pro actif (date d'expiration future)
   Future<bool> getIsPro() async {
     final user = currentUser;
     if (user == null) return false;
     final doc = await _firestore.collection('users').doc(user.uid).get();
-    return doc.data()?['isPro'] ?? false;
+    final expiresAt = doc.data()?['proExpiresAt'] as Timestamp?;
+    if (expiresAt == null) return false;
+    return expiresAt.toDate().isAfter(DateTime.now());
+  }
+
+  // Retourne la date d'expiration Pro actuelle (null si jamais activé)
+  Future<DateTime?> getProExpiresAt() async {
+    final user = currentUser;
+    if (user == null) return null;
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final expiresAt = doc.data()?['proExpiresAt'] as Timestamp?;
+    return expiresAt?.toDate();
   }
 }

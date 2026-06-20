@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:picder/screens/promo_code_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -94,6 +95,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               // ← Nouvelle tuile, visible seulement si connecté
+              if (authProvider.isLoggedIn)
+                _SettingsTile(
+                  icon: Icons.redeem,
+                  title: 'J\'ai un code promo',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PromoCodeScreen()),
+                  ),
+                ),
               if (authProvider.isLoggedIn)
                 _SettingsTile(
                   icon: Icons.logout,
