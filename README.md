@@ -141,3 +141,59 @@ flutter run
 ```
 
 > ⚠️ Les IDs AdMob dans `ads_service.dart` sont des IDs de **test** Google. Remplace-les par tes vrais IDs avant de publier.
+
+---
+
+## Distribuer une version de test (Android)
+
+Via Firebase App Distribution — permet à des testeurs d'installer l'app sans passer par le Play Store.
+
+**Infos du projet :**
+- `--app` : `1:491483932831:android:5c76a81a2303b458dbdaaa`
+- `--project` : `picder-photo-storing-app`
+
+### 1. Construire l'APK
+
+```bash
+flutter build apk --release --target-platform android-arm64
+```
+
+Le fichier sort dans `build/app/outputs/flutter-apk/app-release.apk`.
+
+### 2. (Optionnel) Ajouter des testeurs au projet à l'avance
+
+```bash
+firebase appdistribution:testers:add "email1@exemple.com,email2@exemple.com" --project picder-photo-storing-app
+```
+
+Pas obligatoire — l'étape 3 peut inviter directement des emails jamais vus.
+
+### 3. Envoyer la release aux testeurs
+
+```bash
+firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+  --app 1:491483932831:android:5c76a81a2303b458dbdaaa \
+  --testers "email1@exemple.com,email2@exemple.com" \
+  --release-notes "Description des changements de cette version" \
+  --project picder-photo-storing-app
+```
+
+⚠️ **Le `--testers` sur cette commande déclenche l'email d'invitation.** Ajouter quelqu'un à la liste (étape 2) sans jamais lui envoyer de release avec `--testers` = il ne reçoit rien.
+
+### 4. Ce que fait la personne testeuse
+
+1. Elle reçoit un email "You've been invited to test Picder".
+2. Elle clique le lien → installe l'app **Firebase App Tester** (une seule fois).
+3. Elle télécharge et installe l'APK depuis cette app.
+
+### 5. Vérifier qui est invité
+
+```bash
+firebase appdistribution:testers:list --project picder-photo-storing-app
+```
+
+### 6. Envoyer une mise à jour plus tard
+
+Refaire les étapes 1 et 3 (même commande) — Firebase remplace la version, les testeurs reçoivent une notif de mise à jour.
+
+> ℹ️ Le build release utilise la signature **debug** (`android/app/build.gradle.kts`) et R8 est désactivé (`isMinifyEnabled = false`) — nécessaire pour éviter un crash au démarrage lié à WorkManager. À revoir avant une vraie publication Play Store.

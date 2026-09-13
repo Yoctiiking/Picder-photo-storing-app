@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:picder/screens/swipe_screen.dart';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/photo_sorter_provider.dart';
 import '../services/rewarded_ad_service.dart';
 import '../services/settings_service.dart';
@@ -24,7 +27,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
     _settingsService.getConfirmDelete().then((value) {
       if (mounted) setState(() => _confirmDelete = value);
     });
-    _rewardedAdService.preload(); // ← précharge dès l'arrivée sur l'écran
+    if (!context.read<AuthProvider>().isPro) {
+      _rewardedAdService.preload(); // ← précharge dès l'arrivée sur l'écran
+    }
   }
 
   @override
@@ -38,6 +43,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     final provider = context.watch<PhotoSorterProvider>();
     final bg = Theme.of(context).scaffoldBackgroundColor;
     final onSurface = Theme.of(context).colorScheme.onSurface;
+    final columns = Responsive.reviewGridColumns(context);
 
     return Scaffold(
       backgroundColor: bg,
@@ -56,134 +62,157 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 },
               )
             : null,
+        title: Text(
+          provider.remaining > 0 ? 'Valider le tri ?' : 'Tri terminé !',
+          style: TextStyle(color: onSurface),
+        ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: Responsive.maxContentWidth(context),
+              maxWidth: Responsive.maxSwipeWidth(context),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.green,
-                    size: 80,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    provider.remaining > 0
-                        ? 'Valider le tri ?'
-                        : 'Tri terminé !',
-                    style: TextStyle(
-                      color: onSurface,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  _StatRow(
-                    label: 'Photos gardées',
-                    count: provider.toKeep.length,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(height: 12),
-                  _StatRow(
-                    label: 'Photos supprimées',
-                    count: provider.toDelete.length,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 48),
-
-                  if (provider.toDelete.isNotEmpty)
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
+            child: Column(
+              children: [
+                Expanded(
+                  child: CustomScrollView(
+                    slivers: [
+                      if (provider.toDelete.isNotEmpty) ...[
+                        _SectionHeader(
+                          label: 'À supprimer (${provider.toDelete.length})',
+                          color: Colors.red,
                         ),
+                        _ReviewGrid(
+                          photos: provider.toDelete,
+                          markedForDeletion: true,
+                          columns: columns,
+                          onToggle: provider.toggleDecision,
+                        ),
+                      ],
+                      if (provider.toKeep.isNotEmpty) ...[
+                        _SectionHeader(
+                          label: 'Gardées (${provider.toKeep.length})',
+                          color: Colors.green,
+                        ),
+                        _ReviewGrid(
+                          photos: provider.toKeep,
+                          markedForDeletion: false,
+                          columns: columns,
+                          onToggle: provider.toggleDecision,
+                        ),
+                      ],
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: 16),
                       ),
-                      icon: const Icon(Icons.delete_forever),
-                      label: Text(
-                        'Supprimer ${provider.toDelete.length} photos définitivement',
-                      ),
-                      onPressed: () async {
-                        bool shouldDelete = true;
+                    ],
+                  ),
+                ),
+                // ← Barre d'actions fixe : jamais besoin de scroller pour supprimer
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+                  child: Column(
+                    children: [
+                      if (provider.toDelete.isNotEmpty)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                          ),
+                          icon: const Icon(Icons.delete_forever),
+                          label: Text(
+                            'Supprimer ${provider.toDelete.length} photos définitivement',
+                          ),
+                          onPressed: () async {
+                            bool shouldDelete = true;
 
-                        if (_confirmDelete) {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Confirmer la suppression'),
-                              content: Text(
-                                'Tu vas supprimer ${provider.toDelete.length} photos. '
-                                'Cette action est irréversible.',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Annuler'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text(
-                                    'Supprimer',
-                                    style: TextStyle(color: Colors.red),
+                            if (_confirmDelete) {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text(
+                                    'Confirmer la suppression',
                                   ),
+                                  content: Text(
+                                    'Tu vas supprimer ${provider.toDelete.length} photos. '
+                                    'Cette action est irréversible.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('Annuler'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, true),
+                                      child: const Text(
+                                        'Supprimer',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              );
+                              shouldDelete = confirmed == true;
+                            }
+
+                            if (shouldDelete && context.mounted) {
+                              await provider.confirmDeletions();
+
+                              // ← Lance directement la vidéo récompensée, sans demander
+                              // (jamais pour les membres Pro)
+                              final isPro =
+                                  context.mounted &&
+                                  context.read<AuthProvider>().isPro;
+                              if (!isPro && _rewardedAdService.isReady) {
+                                await _rewardedAdService.show(
+                                  onRewarded: () {},
+                                );
+                              }
+
+                              if (context.mounted) {
+                                provider.reload();
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (_) => const SwipeScreen(),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+
+                      const SizedBox(height: 12),
+
+                      TextButton.icon(
+                        icon: Icon(
+                          Icons.refresh,
+                          color: onSurface.withValues(alpha: 0.54),
+                        ),
+                        label: Text(
+                          'Recommencer',
+                          style: TextStyle(
+                            color: onSurface.withValues(alpha: 0.54),
+                          ),
+                        ),
+                        onPressed: () {
+                          provider.reset();
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const SwipeScreen(),
                             ),
                           );
-                          shouldDelete = confirmed == true;
-                        }
-
-                        if (shouldDelete && context.mounted) {
-                          await provider.confirmDeletions();
-
-                          // ← Lance directement la vidéo récompensée, sans demander
-                          if (_rewardedAdService.isReady) {
-                            await _rewardedAdService.show(onRewarded: () {});
-                          }
-
-                          if (context.mounted) {
-                            provider.reload();
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (_) => const SwipeScreen(),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  TextButton.icon(
-                    icon: Icon(
-                      Icons.refresh,
-                      color: onSurface.withValues(alpha: 0.54),
-                    ),
-                    label: Text(
-                      'Recommencer',
-                      style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.54),
+                        },
                       ),
-                    ),
-                    onPressed: () {
-                      provider.reset();
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const SwipeScreen()),
-                      );
-                    },
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -192,39 +221,110 @@ class _SummaryScreenState extends State<SummaryScreen> {
   }
 }
 
-class _StatRow extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
   final String label;
-  final int count;
   final Color color;
 
-  const _StatRow({
-    required this.label,
-    required this.count,
-    required this.color,
+  const _SectionHeader({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+        child: Text(
+          label,
+          style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewGrid extends StatelessWidget {
+  final List<AssetEntity> photos;
+  final bool markedForDeletion;
+  final int columns;
+  final ValueChanged<AssetEntity> onToggle;
+
+  const _ReviewGrid({
+    required this.photos,
+    required this.markedForDeletion,
+    required this.columns,
+    required this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: onSurface.withValues(alpha: 0.7),
-            fontSize: 16,
-          ),
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
         ),
-        Text(
-          '$count',
-          style: TextStyle(
-            color: color,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final photo = photos[index];
+            return _ReviewPhotoTile(
+              photo: photo,
+              markedForDeletion: markedForDeletion,
+              onTap: () => onToggle(photo),
+            );
+          },
+          childCount: photos.length,
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _ReviewPhotoTile extends StatelessWidget {
+  final AssetEntity photo;
+  final bool markedForDeletion;
+  final VoidCallback onTap;
+
+  const _ReviewPhotoTile({
+    required this.photo,
+    required this.markedForDeletion,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = markedForDeletion ? Colors.red : Colors.green;
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AssetEntityImage(
+              photo,
+              isOriginal: false,
+              thumbnailSize: const ThumbnailSize(200, 200),
+              fit: BoxFit.cover,
+            ),
+            if (markedForDeletion)
+              Container(color: Colors.red.withValues(alpha: 0.18)),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Icon(
+                  markedForDeletion ? Icons.delete : Icons.check,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

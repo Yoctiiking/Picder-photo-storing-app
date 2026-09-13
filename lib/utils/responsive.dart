@@ -15,6 +15,14 @@ class Responsive {
     return 2;
   }
 
+  // Nombre de colonnes pour les grilles de miniatures denses (validation du tri)
+  static int reviewGridColumns(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width >= 900) return 5;
+    if (width >= 600) return 4;
+    return 3;
+  }
+
   // Largeur max pour le contenu centré (formulaires, listes, résumés)
   static double maxContentWidth(BuildContext context) {
     return isTablet(context) ? 480 : double.infinity;

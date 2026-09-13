@@ -129,6 +129,16 @@ class PhotoSorterProvider extends ChangeNotifier {
     _advance();
   }
 
+  // Bascule une photo entre "à garder" et "à supprimer" (écran de validation)
+  void toggleDecision(AssetEntity photo) {
+    if (_toDelete.remove(photo)) {
+      _toKeep.add(photo);
+    } else if (_toKeep.remove(photo)) {
+      _toDelete.add(photo);
+    }
+    notifyListeners();
+  }
+
   // Annuler la dernière action
   void undo() {
     if (_currentIndex <= 0) return;

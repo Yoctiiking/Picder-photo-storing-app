@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:picder/screens/permission_gate_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import '../providers/auth_provider.dart';
 import '../providers/photo_sorter_provider.dart';
 import '../services/ads_service.dart';
 import '../services/gallery_service.dart';
@@ -66,8 +67,10 @@ class _SwipeScreenState extends State<SwipeScreen>
       }
     });
 
-    _rewardedAdService.preload(); // ← précharge dès l'arrivée sur l'écran
-    _checkBannerStatus();
+    if (!context.read<AuthProvider>().isPro) {
+      _rewardedAdService.preload(); // ← précharge dès l'arrivée sur l'écran
+      _checkBannerStatus();
+    }
   }
 
   Future<void> _checkBannerStatus() async {
@@ -95,6 +98,7 @@ class _SwipeScreenState extends State<SwipeScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PhotoSorterProvider>();
+    final isPro = context.watch<AuthProvider>().isPro;
     final bg = Theme.of(context).scaffoldBackgroundColor;
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
@@ -389,10 +393,10 @@ class _SwipeScreenState extends State<SwipeScreen>
                   ],
                 ),
               ),
-              if (!_bannerHidden)
+              if (!isPro && !_bannerHidden)
                 BannerAdWidget(
                   onBannerHidden: () => setState(() => _bannerHidden = true),
-                ), // ← Bannière publicitaire conditionnel
+                ), // ← Bannière publicitaire conditionnel (masquée pour les membres Pro)
             ],
           ),
         ),
