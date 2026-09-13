@@ -166,6 +166,16 @@ class _SwipeScreenState extends State<SwipeScreen>
                       fontSize: 15,
                     ),
                   ),
+                  if (provider.keptOnDiskCount > 0) ...[
+                    const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: () => provider.reviewKeptPhotos(),
+                      icon: const Icon(Icons.replay_rounded),
+                      label: Text(
+                        'Revoir les ${provider.keptOnDiskCount} photos gardées',
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

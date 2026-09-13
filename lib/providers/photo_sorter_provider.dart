@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../services/gallery_service.dart';
+import '../services/kept_photos_service.dart';
 import '../services/settings_service.dart';
 import '../services/stats_service.dart';
 
@@ -8,6 +9,7 @@ class PhotoSorterProvider extends ChangeNotifier {
   final GalleryService _galleryService = GalleryService();
   final StatsService _statsService = StatsService();
   final SettingsService _settingsService = SettingsService();
+  final KeptPhotosService _keptPhotosService = KeptPhotosService();
 
   List<AssetEntity> _allPhotos = []; // Toutes les photos
   AssetPathEntity? _currentAlbum;
@@ -17,6 +19,8 @@ class PhotoSorterProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isFinished = false;
   PermissionStatus _permissionStatus = PermissionStatus.denied;
+  // Nombre de photos déjà gardées lors de sessions précédentes (persistées)
+  int _keptOnDiskCount = 0;
 
   // Getters (lecture seule depuis l'UI)
   List<AssetEntity> get allPhotos => _allPhotos;
@@ -36,6 +40,8 @@ class PhotoSorterProvider extends ChangeNotifier {
   int get remaining => _allPhotos.length - _currentIndex;
 
   PermissionStatus get permissionStatus => _permissionStatus;
+
+  int get keptOnDiskCount => _keptOnDiskCount;
 
   // Vérifie la permission sans charger de photos (pour HomeScreen)
   Future<void> checkPermissionOnly() async {
@@ -88,8 +94,15 @@ class PhotoSorterProvider extends ChangeNotifier {
     }
 
     // 2. Permissions: OK - Charger les photos
-    // ← Exclut les photos déjà gardées des sessions précédentes
-    final excludeIds = _toKeep.map((p) => p.id).toList();
+    // ← Exclut les photos gardées cette session ET celles persistées des sessions précédentes
+    final persistedKeptIds = await _keptPhotosService.getKeptIds(
+      _currentAlbum!.id,
+    );
+    _keptOnDiskCount = persistedKeptIds.length;
+    final excludeIds = {
+      ..._toKeep.map((p) => p.id),
+      ...persistedKeptIds,
+    }.toList();
     final includeGifs = await _settingsService.getIncludeGifs();
     _allPhotos = await _galleryService.loadPhotosFromAlbum(
       _currentAlbum!,
@@ -155,6 +168,14 @@ class PhotoSorterProvider extends ChangeNotifier {
       await _galleryService.deletePhotos(_toDelete);
     }
 
+    // ← Persiste les photos gardées pour ne plus les remontrer plus tard
+    if (_toKeep.isNotEmpty && _currentAlbum != null) {
+      await _keptPhotosService.addKeptIds(
+        _currentAlbum!.id,
+        _toKeep.map((p) => p.id).toSet(),
+      );
+    }
+
     // ← Enregistre les statistiques de cette session
     await _statsService.recordSession(
       kept: _toKeep.length,
@@ -163,6 +184,13 @@ class PhotoSorterProvider extends ChangeNotifier {
     );
     _toDelete.clear();
     notifyListeners();
+  }
+
+  // Oublie les photos gardées de l'album courant pour pouvoir les retrier
+  Future<void> reviewKeptPhotos() async {
+    if (_currentAlbum == null) return;
+    await _keptPhotosService.clearKeptIds(_currentAlbum!.id);
+    reset();
   }
 
   // Recharge en conservant les photos déjà gardées (après une suppression)
