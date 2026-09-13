@@ -124,19 +124,19 @@ class GalleryService {
     );
 
     if (excludeIds.isNotEmpty) {
-      photos = photos.where((p) => !excludeIds.contains(p.id)).toList();
+      final excludeSet = excludeIds.toSet();
+      photos = photos.where((p) => !excludeSet.contains(p.id)).toList();
     }
 
-    // ← Filtre les GIFs si désactivé
+    // ← Filtre les GIFs si désactivé (mimeType récupérés en parallèle)
     if (!includeGifs) {
-      final filtered = <AssetEntity>[];
-      for (final photo in photos) {
-        final mimeType = await photo.mimeTypeAsync;
-        if (mimeType != 'image/gif') {
-          filtered.add(photo);
-        }
-      }
-      return filtered;
+      final mimeTypes = await Future.wait(
+        photos.map((photo) => photo.mimeTypeAsync),
+      );
+      return [
+        for (var i = 0; i < photos.length; i++)
+          if (mimeTypes[i] != 'image/gif') photos[i],
+      ];
     }
 
     return photos;
@@ -153,15 +153,17 @@ class GalleryService {
     }
   }
 
-  // Calcule la taille totale en octets d'une liste de photos
+  // Calcule la taille totale en octets d'une liste de photos (en parallèle)
   Future<int> calculateTotalSize(List<AssetEntity> photos) async {
-    int total = 0;
-    for (final photo in photos) {
-      final file = await photo.file;
-      if (file != null && await file.exists()) {
-        total += await file.length();
-      }
-    }
-    return total;
+    final sizes = await Future.wait<int>(
+      photos.map((photo) async {
+        final file = await photo.file;
+        if (file != null && await file.exists()) {
+          return await file.length();
+        }
+        return 0;
+      }),
+    );
+    return sizes.fold<int>(0, (sum, size) => sum + size);
   }
 }
