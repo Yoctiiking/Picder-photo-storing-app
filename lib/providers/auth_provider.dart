@@ -7,10 +7,12 @@ class AuthProvider extends ChangeNotifier {
 
   User? _user;
   bool _isPro = false;
+  DateTime? _proExpiresAt;
   bool _isLoading = true;
 
   User? get user => _user;
   bool get isPro => _isPro;
+  DateTime? get proExpiresAt => _proExpiresAt;
   bool get isLoggedIn => _user != null;
   bool get isLoading => _isLoading;
 
@@ -19,8 +21,10 @@ class AuthProvider extends ChangeNotifier {
       _user = user;
       if (user != null) {
         _isPro = await _authService.getIsPro();
+        _proExpiresAt = await _authService.getProExpiresAt();
       } else {
         _isPro = false;
+        _proExpiresAt = null;
       }
       _isLoading = false;
       notifyListeners();
@@ -31,6 +35,7 @@ class AuthProvider extends ChangeNotifier {
   // Ajoute cette méthode dans AuthProvider
   Future<void> refreshProStatus() async {
     _isPro = await _authService.getIsPro();
+    _proExpiresAt = await _authService.getProExpiresAt();
     notifyListeners();
   }
 
