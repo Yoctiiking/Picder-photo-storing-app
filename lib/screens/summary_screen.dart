@@ -5,6 +5,7 @@ import 'package:picder/screens/swipe_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/photo_sorter_provider.dart';
+import '../services/ads_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../services/settings_service.dart';
 import '../utils/responsive.dart';
@@ -19,6 +20,7 @@ class SummaryScreen extends StatefulWidget {
 class _SummaryScreenState extends State<SummaryScreen> {
   final SettingsService _settingsService = SettingsService();
   final RewardedAdService _rewardedAdService = RewardedAdService();
+  final AdsService _adsService = AdsService();
   bool _confirmDelete = false;
 
   @override
@@ -165,14 +167,17 @@ class _SummaryScreenState extends State<SummaryScreen> {
                               await provider.confirmDeletions();
 
                               // ← Lance directement la vidéo récompensée, sans demander
-                              // (jamais pour les membres Pro)
+                              // (jamais pour les membres Pro, ni avant la fin du délai de 5 min)
                               final isPro =
                                   context.mounted &&
                                   context.read<AuthProvider>().isPro;
-                              if (!isPro && _rewardedAdService.isReady) {
+                              if (!isPro &&
+                                  _rewardedAdService.isReady &&
+                                  await _adsService.canShowDeletionAd()) {
                                 await _rewardedAdService.show(
                                   onRewarded: () {},
                                 );
+                                await _adsService.recordDeletionAdShown();
                               }
 
                               if (context.mounted) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../services/gallery_service.dart';
 import '../services/kept_photos_service.dart';
+import '../services/pending_sort_service.dart';
 import '../services/settings_service.dart';
 import '../services/stats_service.dart';
 
@@ -10,6 +11,7 @@ class PhotoSorterProvider extends ChangeNotifier {
   final StatsService _statsService = StatsService();
   final SettingsService _settingsService = SettingsService();
   final KeptPhotosService _keptPhotosService = KeptPhotosService();
+  final PendingSortService _pendingSortService = PendingSortService();
 
   List<AssetEntity> _allPhotos = []; // Toutes les photos
   AssetPathEntity? _currentAlbum;
@@ -51,6 +53,11 @@ class PhotoSorterProvider extends ChangeNotifier {
 
   // Choisit un album et charge ses photos
   void setAlbum(AssetPathEntity album) {
+    // ← Même album déjà en cours : on ne perd pas la progression en mémoire
+    if (_currentAlbum?.id == album.id) {
+      loadPhotos();
+      return;
+    }
     _currentAlbum = album;
     _allPhotos = [];
     _toKeep = [];
@@ -93,14 +100,34 @@ class PhotoSorterProvider extends ChangeNotifier {
       return;
     }
 
+    // ← Réhydrate les décisions pas encore confirmées (session précédente
+    // interrompue par un retour au menu ou la fermeture de l'app)
+    if (_toKeep.isEmpty && _toDelete.isEmpty) {
+      final pendingKeepIds = await _pendingSortService.getPendingKeepIds(
+        _currentAlbum!.id,
+      );
+      final pendingDeleteIds = await _pendingSortService.getPendingDeleteIds(
+        _currentAlbum!.id,
+      );
+      for (final id in pendingKeepIds) {
+        final asset = await AssetEntity.fromId(id);
+        if (asset != null) _toKeep.add(asset);
+      }
+      for (final id in pendingDeleteIds) {
+        final asset = await AssetEntity.fromId(id);
+        if (asset != null) _toDelete.add(asset);
+      }
+    }
+
     // 2. Permissions: OK - Charger les photos
-    // ← Exclut les photos gardées cette session ET celles persistées des sessions précédentes
+    // ← Exclut les photos déjà décidées (cette session + en attente + confirmées)
     final persistedKeptIds = await _keptPhotosService.getKeptIds(
       _currentAlbum!.id,
     );
     _keptOnDiskCount = persistedKeptIds.length;
     final excludeIds = {
       ..._toKeep.map((p) => p.id),
+      ..._toDelete.map((p) => p.id),
       ...persistedKeptIds,
     }.toList();
     final includeGifs = await _settingsService.getIncludeGifs();
@@ -111,7 +138,10 @@ class PhotoSorterProvider extends ChangeNotifier {
     );
     _currentIndex = 0;
     _isLoading = false;
-    _isFinished = false;
+    // ← Des décisions en attente (réhydratées) sans plus aucune photo à
+    // trier doivent mener à l'écran de validation, pas à "galerie vide"
+    _isFinished =
+        _allPhotos.isEmpty && (_toKeep.isNotEmpty || _toDelete.isNotEmpty);
     notifyListeners();
   }
 
@@ -120,6 +150,7 @@ class PhotoSorterProvider extends ChangeNotifier {
     if (currentPhoto == null) return;
     _toKeep.add(currentPhoto!);
     _advance();
+    _savePendingState();
   }
 
   // Swipe gauche = supprimer
@@ -127,6 +158,7 @@ class PhotoSorterProvider extends ChangeNotifier {
     if (currentPhoto == null) return;
     _toDelete.add(currentPhoto!);
     _advance();
+    _savePendingState();
   }
 
   // Bascule une photo entre "à garder" et "à supprimer" (écran de validation)
@@ -137,6 +169,17 @@ class PhotoSorterProvider extends ChangeNotifier {
       _toDelete.add(photo);
     }
     notifyListeners();
+    _savePendingState();
+  }
+
+  // Sauvegarde les décisions pas encore confirmées pour l'album courant
+  void _savePendingState() {
+    if (_currentAlbum == null) return;
+    _pendingSortService.savePending(
+      _currentAlbum!.id,
+      keepIds: _toKeep.map((p) => p.id).toList(),
+      deleteIds: _toDelete.map((p) => p.id).toList(),
+    );
   }
 
   // Annuler la dernière action
@@ -156,6 +199,7 @@ class PhotoSorterProvider extends ChangeNotifier {
     _toDelete.remove(lastPhoto);
 
     notifyListeners();
+    _savePendingState();
   }
 
   // Passe à la photo suivante
@@ -193,6 +237,10 @@ class PhotoSorterProvider extends ChangeNotifier {
       bytesFreed: bytesFreed,
     );
     _toDelete.clear();
+    // ← Décisions confirmées : plus besoin de les garder "en attente"
+    if (_currentAlbum != null) {
+      await _pendingSortService.clearPending(_currentAlbum!.id);
+    }
     notifyListeners();
   }
 
@@ -216,6 +264,9 @@ class PhotoSorterProvider extends ChangeNotifier {
 
   // Recommencer du début
   void reset() {
+    if (_currentAlbum != null) {
+      _pendingSortService.clearPending(_currentAlbum!.id);
+    }
     _allPhotos = [];
     _toKeep = [];
     _toDelete = [];

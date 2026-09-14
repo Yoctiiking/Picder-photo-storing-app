@@ -38,4 +38,22 @@ class AdsService {
     if (until == null) return false;
     return DateTime.now().millisecondsSinceEpoch < until;
   }
+
+  static const _keyDeletionAdShownUntil = 'ads_deletion_ad_hidden_until';
+  static const Duration deletionAdCooldown = Duration(minutes: 5);
+
+  // Enregistre le moment où la pub de suppression vient d'être montrée
+  Future<void> recordDeletionAdShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    final until = DateTime.now().add(deletionAdCooldown);
+    await prefs.setInt(_keyDeletionAdShownUntil, until.millisecondsSinceEpoch);
+  }
+
+  // true si le délai depuis la dernière pub de suppression est écoulé
+  Future<bool> canShowDeletionAd() async {
+    final prefs = await SharedPreferences.getInstance();
+    final until = prefs.getInt(_keyDeletionAdShownUntil);
+    if (until == null) return true;
+    return DateTime.now().millisecondsSinceEpoch >= until;
+  }
 }
