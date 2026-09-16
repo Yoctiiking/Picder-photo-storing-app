@@ -42,7 +42,8 @@ class ProScreen extends StatelessWidget {
             ? 'Valide jusqu\'au ${_formatDate(expiresAt)}'
             : null,
         footnote:
-            'Vidéos, sync cloud et suppression des pubs arrivent bientôt pour les membres Pro.',
+            'Tu peux maintenant trier tes vidéos en plus des photos. '
+            'Sync cloud et suppression des pubs arrivent bientôt pour les membres Pro.',
       );
     } else {
       content = _ProMessage(

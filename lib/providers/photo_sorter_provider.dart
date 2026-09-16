@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import '../services/auth_service.dart';
 import '../services/gallery_service.dart';
 import '../services/kept_photos_service.dart';
 import '../services/pending_sort_service.dart';
@@ -12,6 +13,7 @@ class PhotoSorterProvider extends ChangeNotifier {
   final SettingsService _settingsService = SettingsService();
   final KeptPhotosService _keptPhotosService = KeptPhotosService();
   final PendingSortService _pendingSortService = PendingSortService();
+  final AuthService _authService = AuthService();
 
   List<AssetEntity> _allPhotos = []; // Toutes les photos
   AssetPathEntity? _currentAlbum;
@@ -131,10 +133,13 @@ class PhotoSorterProvider extends ChangeNotifier {
       ...persistedKeptIds,
     }.toList();
     final includeGifs = await _settingsService.getIncludeGifs();
+    // ← Le tri des vidéos est réservé aux membres Pro
+    final includeVideos = await _authService.getIsPro();
     _allPhotos = await _galleryService.loadPhotosFromAlbum(
       _currentAlbum!,
       excludeIds: excludeIds,
       includeGifs: includeGifs,
+      includeVideos: includeVideos,
     );
     _currentIndex = 0;
     _isLoading = false;

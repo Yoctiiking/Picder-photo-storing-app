@@ -37,6 +37,8 @@ dependencies:
   # Accès à la galerie photo (la lib la plus puissante pour ça)
   photo_manager: ^3.3.0
   photo_manager_image_provider: ^2.1.1
+  # Lecture vidéo pour l'aperçu plein écran (tri terminé)
+  video_player: ^2.9.5
   # Gestion d'état — simple et efficace
   provider: ^6.1.2
   # Animations de swipe

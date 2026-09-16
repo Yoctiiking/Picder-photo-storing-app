@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../providers/photo_sorter_provider.dart';
+import '../services/auth_service.dart';
 import '../services/gallery_service.dart';
 import '../utils/responsive.dart';
 import 'permission_gate_screen.dart';
@@ -20,7 +21,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final GalleryService _galleryService = GalleryService();
+  final AuthService _authService = AuthService();
   List<AlbumInfo>? _albums;
+  bool _isPro = false;
   bool _loading = true;
 
   @override
@@ -48,9 +51,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() => _loading = false);
       return;
     }
-    final albums = await _galleryService.getAlbums();
+    // ← Le tri des vidéos est réservé aux membres Pro
+    final isPro = await _authService.getIsPro();
+    final albums = await _galleryService.getAlbums(includeVideos: isPro);
     setState(() {
       _albums = albums;
+      _isPro = isPro;
       _loading = false;
     });
   }
@@ -114,14 +120,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               itemBuilder: (context, index) {
                 if (index == _albums!.length) {
                   return _ProCard(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProScreen()),
-                    ),
+                    onTap: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ProScreen()),
+                      );
+                      // ← Le statut Pro a pu changer (connexion, code promo) :
+                      // recharge les albums pour refléter l'accès aux vidéos
+                      if (context.mounted) _init();
+                    },
                   );
                 }
                 final album = _albums![index];
                 return _AlbumCard(
                   album: album,
+                  isPro: _isPro,
                   onTap: () {
                     provider.setAlbum(album.path);
                     Navigator.of(context).push(
@@ -137,9 +149,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
 class _AlbumCard extends StatelessWidget {
   final AlbumInfo album;
+  final bool isPro;
   final VoidCallback onTap;
 
-  const _AlbumCard({required this.album, required this.onTap});
+  const _AlbumCard({
+    required this.album,
+    required this.isPro,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +201,7 @@ class _AlbumCard extends StatelessWidget {
                           color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     Text(
-                      '${album.count} photos',
+                      isPro ? '${album.count} éléments' : '${album.count} photos',
                       style: const TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                   ],

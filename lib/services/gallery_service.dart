@@ -74,13 +74,14 @@ class GalleryService {
   }
 
   // Récupère tous les albums avec leur miniature
-  Future<List<AlbumInfo>> getAlbums() async {
+  // ← includeVideos réservé aux membres Pro (voir PhotoSorterProvider)
+  Future<List<AlbumInfo>> getAlbums({bool includeVideos = false}) async {
     final PermissionState permission =
         await PhotoManager.requestPermissionExtend();
     if (!permission.isAuth) return [];
 
     final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
-      type: RequestType.image,
+      type: includeVideos ? RequestType.common : RequestType.image,
       hasAll: true, // inclut l'album "Tous les éléments"
     );
 
@@ -109,11 +110,13 @@ class GalleryService {
     return result;
   }
 
-  // Charge les photos d'un album précis
+  // Charge les photos (et vidéos, si autorisé) d'un album précis
+  // ← includeVideos réservé aux membres Pro (voir PhotoSorterProvider)
   Future<List<AssetEntity>> loadPhotosFromAlbum(
     AssetPathEntity album, {
     List<String> excludeIds = const [],
     bool includeGifs = true,
+    bool includeVideos = false,
   }) async {
     final int count = await album.assetCountAsync;
     if (count == 0) return [];
@@ -122,6 +125,10 @@ class GalleryService {
       start: 0,
       end: count,
     );
+
+    if (!includeVideos) {
+      photos = photos.where((p) => p.type != AssetType.video).toList();
+    }
 
     if (excludeIds.isNotEmpty) {
       final excludeSet = excludeIds.toSet();

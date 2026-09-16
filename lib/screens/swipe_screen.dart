@@ -9,6 +9,7 @@ import '../services/gallery_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../utils/responsive.dart';
 import '../widgets/photo_card.dart';
+import 'photo_viewer_screen.dart';
 import 'summary_screen.dart';
 import '../widgets/banner_ad_widget.dart';
 
@@ -299,9 +300,10 @@ class _SwipeScreenState extends State<SwipeScreen>
                         if (index < 0 || index >= provider.allPhotos.length) {
                           return const SizedBox.shrink();
                         }
+                        final cardPhoto = provider.allPhotos[index];
                         return Stack(
                           children: [
-                            PhotoCard(photo: provider.allPhotos[index]),
+                            PhotoCard(photo: cardPhoto),
                             Positioned.fill(
                               child: IgnorePointer(
                                 child: ClipRRect(
@@ -325,6 +327,34 @@ class _SwipeScreenState extends State<SwipeScreen>
                                 ),
                               ),
                             ),
+                            // ← Uniquement sur la carte du dessus : voir la
+                            // photo en pleine résolution, chargée à la demande
+                            if (index == 0)
+                              Positioned(
+                                left: 12,
+                                bottom: 12,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      fullscreenDialog: true,
+                                      builder: (_) =>
+                                          PhotoViewerScreen(photo: cardPhoto),
+                                    ),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black45,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.zoom_out_map,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         );
                       },

@@ -3,6 +3,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:picder/screens/swipe_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 import '../providers/auth_provider.dart';
 import '../providers/photo_sorter_provider.dart';
 import '../services/ads_service.dart';
@@ -285,7 +286,7 @@ class _ReviewGrid extends StatelessWidget {
   }
 }
 
-class _ReviewPhotoTile extends StatelessWidget {
+class _ReviewPhotoTile extends StatefulWidget {
   final AssetEntity photo;
   final bool markedForDeletion;
   final VoidCallback onTap;
@@ -297,22 +298,66 @@ class _ReviewPhotoTile extends StatelessWidget {
   });
 
   @override
+  State<_ReviewPhotoTile> createState() => _ReviewPhotoTileState();
+}
+
+class _ReviewPhotoTileState extends State<_ReviewPhotoTile> {
+  OverlayEntry? _previewEntry;
+
+  // ← Maintenir une tuile l'affiche en grand par-dessus tout, pour être
+  // sûr de ce qu'on a sélectionné avant de confirmer. L'aperçu reste
+  // affiché même après avoir relâché, jusqu'à un tap en dehors du média.
+  void _showPreview() {
+    if (_previewEntry != null) return;
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (_) => _PhotoPreviewOverlay(
+        photo: widget.photo,
+        markedForDeletion: widget.markedForDeletion,
+        onDismiss: _hidePreview,
+      ),
+    );
+    _previewEntry = entry;
+    overlay.insert(entry);
+  }
+
+  void _hidePreview() {
+    _previewEntry?.remove();
+    _previewEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _previewEntry?.remove();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = markedForDeletion ? Colors.red : Colors.green;
+    final color = widget.markedForDeletion ? Colors.red : Colors.green;
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
+      onLongPressStart: (_) => _showPreview(),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Stack(
           fit: StackFit.expand,
           children: [
             AssetEntityImage(
-              photo,
+              widget.photo,
               isOriginal: false,
               thumbnailSize: const ThumbnailSize(200, 200),
               fit: BoxFit.cover,
             ),
-            if (markedForDeletion)
+            if (widget.photo.type == AssetType.video)
+              const Center(
+                child: Icon(
+                  Icons.play_circle_fill,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            if (widget.markedForDeletion)
               Container(color: Colors.red.withValues(alpha: 0.18)),
             Positioned(
               top: 4,
@@ -321,7 +366,7 @@ class _ReviewPhotoTile extends StatelessWidget {
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                 child: Icon(
-                  markedForDeletion ? Icons.delete : Icons.check,
+                  widget.markedForDeletion ? Icons.delete : Icons.check,
                   color: Colors.white,
                   size: 14,
                 ),
@@ -329,6 +374,156 @@ class _ReviewPhotoTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ← Aperçu plein écran affiché après un appui long, jusqu'à un tap
+// en dehors du média (les vidéos se lancent automatiquement)
+class _PhotoPreviewOverlay extends StatelessWidget {
+  final AssetEntity photo;
+  final bool markedForDeletion;
+  final VoidCallback onDismiss;
+
+  const _PhotoPreviewOverlay({
+    required this.photo,
+    required this.markedForDeletion,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = markedForDeletion ? Colors.red : Colors.green;
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: onDismiss,
+        child: Container(
+          color: Colors.black87,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: GestureDetector(
+                // ← Absorbe le tap pour que toucher le média ne ferme pas l'aperçu
+                onTap: () {},
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: color, width: 3),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(13),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        photo.type == AssetType.video
+                            ? _VideoPreviewPlayer(photo: photo)
+                            : AssetEntityImage(
+                                photo,
+                                isOriginal: true,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stack) => const Padding(
+                                  padding: EdgeInsets.all(48),
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white54,
+                                    size: 60,
+                                  ),
+                                ),
+                              ),
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              markedForDeletion ? Icons.delete : Icons.check,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ← Charge et lit la vidéo en boucle dès que l'aperçu s'ouvre
+class _VideoPreviewPlayer extends StatefulWidget {
+  final AssetEntity photo;
+
+  const _VideoPreviewPlayer({required this.photo});
+
+  @override
+  State<_VideoPreviewPlayer> createState() => _VideoPreviewPlayerState();
+}
+
+class _VideoPreviewPlayerState extends State<_VideoPreviewPlayer> {
+  VideoPlayerController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final file = await widget.photo.file;
+    if (file == null || !mounted) return;
+    final controller = VideoPlayerController.file(file);
+    await controller.initialize();
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    controller
+      ..setLooping(true)
+      ..play();
+    setState(() => _controller = controller);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          AssetEntityImage(
+            widget.photo,
+            isOriginal: false,
+            thumbnailSize: const ThumbnailSize(800, 800),
+            fit: BoxFit.contain,
+          ),
+          Container(color: Colors.black45),
+          const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+        ],
+      );
+    }
+    return Center(
+      child: AspectRatio(
+        aspectRatio: controller.value.aspectRatio,
+        child: VideoPlayer(controller),
       ),
     );
   }
